@@ -12,6 +12,7 @@ import { JournalModule } from "@/console/modules/Journal";
 import { NotPortedModule } from "@/console/modules/NotPorted";
 import { EmployeeApp } from "@/employee/EmployeeApp";
 import { EmployeeStateProvider } from "@/employee/state";
+import { PROTOTYPE_URL } from "@/config";
 
 export function App() {
   const { view, setView, toastMessage } = useStore();
@@ -70,7 +71,7 @@ function ViewBar({ mode, employeeRoute }: { mode: string; employeeRoute: boolean
           Employee
         </button>
       </div>
-      <a className="vbtn" href="/prototype/index.html" target="_blank" rel="noreferrer">Prototype</a>
+      <a className="vbtn" href={PROTOTYPE_URL} target="_blank" rel="noreferrer">Prototype</a>
     </div>
   );
 }

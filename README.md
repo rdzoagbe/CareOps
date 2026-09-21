@@ -14,9 +14,21 @@ branch [`mindmark-final-v1.0.3`](../../tree/mindmark-final-v1.0.3) and the tags
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 41 tests
+npm test         # 50 tests
 npm run build
 ```
+
+The default build targets Vercel, where `vercel.json` rewrites unknown paths to
+`index.html` so `/renewals` is a real URL. For a plain static host with no such
+rule, build with `VITE_STATIC_HOST=true` and a relative base:
+
+```bash
+VITE_STATIC_HOST=true npx vite build --base=./
+```
+
+That moves routing into the URL fragment, so no deep link can 404, and makes
+the links to the prototype relative so they survive being served from a
+sub-path. See `src/config.ts`.
 
 - `/` — the employer console, opening on the Employee Portal
 - `/app` — the employee app, full screen (this is what a phone opens)

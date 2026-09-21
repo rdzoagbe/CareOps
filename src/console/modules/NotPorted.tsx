@@ -5,6 +5,7 @@
 import { useParams } from "react-router-dom";
 import { PageHead } from "../ConsoleLayout";
 import { moduleByKey } from "../nav";
+import { PROTOTYPE_URL } from "@/config";
 
 export function NotPortedModule() {
   const { module = "dashboard" } = useParams();
@@ -16,7 +17,7 @@ export function NotPortedModule() {
         title={meta?.label ?? "Module"}
         sub="Working in the prototype, not yet rebuilt in React"
         actions={
-          <a className="btn" href="/prototype/index.html" target="_blank" rel="noreferrer">
+          <a className="btn" href={PROTOTYPE_URL} target="_blank" rel="noreferrer">
             Open it in the prototype
           </a>
         }
@@ -25,7 +26,7 @@ export function NotPortedModule() {
         <div className="cb">
           <div className="note">
             <b>This module is demoable today.</b> The full prototype is served at{" "}
-            <a href="/prototype/index.html" target="_blank" rel="noreferrer">/prototype</a> with all
+            <a href={PROTOTYPE_URL} target="_blank" rel="noreferrer">/prototype</a> with all
             seventeen modules working, and is being ported into React one module at a time.
           </div>
           <p style={{ marginTop: 12, color: "var(--ink-2)" }}>
