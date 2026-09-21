@@ -73,6 +73,37 @@ describe("prototype: lookup tables keyed by URL content", () => {
   });
 });
 
+describe("prototype: quote escaping also escapes backslashes", () => {
+  // CodeQL js/incomplete-sanitization, alert #17: a replace(/'/g, "\\'") escapes
+  // the quote but not the backslash, so a backslash in the input can neutralise
+  // the escape and free the string literal. jsq() escapes the backslash first.
+  it("has no quote-escaping replace other than jsq's own", () => {
+    const matches = source.match(/replace\(\/'\/g/g) ?? [];
+    expect(matches).toHaveLength(1);
+    expect(source).toContain('const jsq = s =>');
+  });
+
+  it("escapes the backslash before the quote inside jsq", () => {
+    const jsqLine = source.split("\n").find((l) => l.includes("const jsq = s ="))!;
+    expect(jsqLine.indexOf("\\\\/g")).toBeLessThan(jsqLine.indexOf("/'/g"));
+  });
+
+  it("no longer sanitises by deleting quotes", () => {
+    // Deleting a quote is not escaping: it mangles real apostrophes and still
+    // ignores backslashes.
+    expect(source).not.toContain('replace(/\'/g,"")');
+  });
+
+  it("routes the copilot suggestions through jsq and escapes their labels", () => {
+    expect(source).toContain("onclick=\"sendAsk('${jsq(s)}')\"");
+    expect(source).toContain("<b>${esc(s)}</b>");
+  });
+
+  it("routes the proposed-action handler through jsq", () => {
+    expect(source).toContain("approveAction('${jsq(id)}','${jsq(action)}')");
+  });
+});
+
 describe("prototype: a single copy under version control", () => {
   it("is the only committed copy, with the served one generated", () => {
     // Two committed copies meant patching the same file twice, which is how a

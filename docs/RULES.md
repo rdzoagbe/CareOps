@@ -121,8 +121,15 @@ tables are now `Object.create(null)` and a builder is called only when it is
 genuinely one of ours. The same fix corrects a plain bug: `#/constructor` used
 to render `[object Object]` instead of falling back to the dashboard.
 
+A third, found by CodeQL as `js/incomplete-sanitization`: the copilot's
+suggested questions escaped the quote in `onclick="sendAsk('…')"` but not the
+backslash, so a backslash in the input could neutralise the escape and free the
+string literal. A second site nearby "sanitised" by deleting quotes outright,
+which is not escaping and silently mangled apostrophes. Both now use `jsq()`,
+which escapes the backslash first, and the labels are escaped for HTML too.
+
 *Proved:* `src/prototype.test.ts`, which pins every one of these fixes at
-source level.
+source level, including that `jsq` escapes the backslash before the quote.
 
 The prototype is also committed once, not twice. `docs/prototype/CareOps.html`
 is the source and `public/prototype/index.html` is generated from it at build
