@@ -1,0 +1,76 @@
+/**
+ * Layout glue for the React rebuild.
+ *
+ * tokens.css carries the prototype's design system unchanged. This file only
+ * maps it onto the React tree: the prototype toggled panes with classes on
+ * <body>, the app does it with a class on the stage element.
+ */
+
+html, body, #root { height: 100%; }
+body { padding-top: var(--vb); }
+
+.boot {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  color: var(--muted);
+  font: 400 14px/1.5 Inter, ui-sans-serif, system-ui, sans-serif;
+  background: var(--bg);
+}
+
+.stage { min-height: 100%; }
+
+/* The employee pane, beside the console or on its own. */
+.emp-stage {
+  position: fixed;
+  top: var(--vb);
+  right: 0;
+  bottom: 0;
+  width: var(--pw);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  background: linear-gradient(180deg, #dfe7e5, #cfdad7);
+  border-left: 1px solid var(--line);
+}
+:root[data-theme="dark"] .emp-stage { background: linear-gradient(180deg, #0c1716, #0a1211); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .emp-stage { background: linear-gradient(180deg, #0c1716, #0a1211); }
+}
+
+.stage.v-split .emp-stage { display: flex; }
+.stage.v-split .main { width: calc(100% - 246px - var(--pw)); }
+.stage.v-emp .shell { display: none; }
+.stage.v-emp .emp-stage { display: flex; left: 0; width: 100%; }
+.stage.v-admin .emp-stage { display: none; }
+
+.vseg button[disabled] { opacity: .45; cursor: default; }
+.vbtn { text-decoration: none; }
+
+/* Sheets and the push banner are positioned against the phone screen. */
+.screen { position: relative; }
+
+/* Checkbox rows inside a sheet keep the same rhythm as the other rows. */
+.sheet .row input[type="checkbox"] { width: 20px; height: 20px; flex: none; accent-color: var(--a); }
+
+@media (max-width: 1600px) {
+  .stage.v-split .c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stage.v-split .c23,
+  .stage.v-split .c32,
+  .stage.v-split .c3 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1100px) {
+  .stage.v-split .emp-stage { display: none; }
+  .stage.v-split .main { width: 100%; }
+}
+
+@media (max-width: 760px) {
+  .viewbar .vsub { display: none; }
+  .stage.v-emp .emp-stage { background: var(--pbg); }
+  .stage.v-emp .frame { width: 100%; height: 100%; border-radius: 0; padding: 0; background: none; box-shadow: none; }
+  .stage.v-emp .screen { border-radius: 0; }
+  .stage.v-emp .ecap { display: none; }
+}
