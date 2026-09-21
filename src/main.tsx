@@ -1,17 +1,22 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
-import { registerSW } from 'virtual:pwa-register';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, HashRouter } from "react-router-dom";
+import { StoreProvider } from "@/state/store";
+import { App } from "@/App";
+import { STATIC_HOST } from "@/config";
+import "@/styles/tokens.css";
+import "@/styles/app.css";
 
-if ('serviceWorker' in navigator) {
-  registerSW({ immediate: true });
-}
+// A static host with no rewrite rule cannot serve /renewals directly, so
+// routing moves into the fragment there.
+const Router = STATIC_HOST ? HashRouter : BrowserRouter;
 
-console.log('Main.tsx is loading...');
-
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <Router>
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </Router>
   </StrictMode>,
 );

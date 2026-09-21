@@ -1,86 +1,77 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * Routing and the two-pane layout: the employer console on the left, the
+ * employee app on the right, either side able to take the whole screen.
  */
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { useStore } from "@/state/store";
+import { ConsoleLayout } from "@/console/ConsoleLayout";
+import { EmployeePortalModule } from "@/console/modules/EmployeePortal";
+import { RenewalsModule } from "@/console/modules/Renewals";
+import { JournalModule } from "@/console/modules/Journal";
+import { NotPortedModule } from "@/console/modules/NotPorted";
+import { EmployeeApp } from "@/employee/EmployeeApp";
+import { EmployeeStateProvider } from "@/employee/state";
+import { PROTOTYPE_URL } from "@/config";
 
-import { Suspense, lazy } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
-import { Layout } from './components/Layout';
-import { Home } from './pages/Home';
-import { Landing } from './pages/Landing';
-import { useTheme } from './hooks/useTheme';
-import { SessionProvider } from './contexts/SessionContext';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { CommandPalette } from './components/CommandPalette';
-import { SEOManager } from './components/SEOManager';
+export function App() {
+  const { view, setView, toastMessage } = useStore();
+  const location = useLocation();
+  const employeeRoute = location.pathname.startsWith("/app");
 
-// Lazy load heavy pages
-const CreateSession = lazy(() => import('./pages/CreateSession').then(module => ({ default: module.CreateSession })));
-const EditSession = lazy(() => import('./pages/EditSession').then(module => ({ default: module.EditSession })));
-const SessionDetail = lazy(() => import('./pages/SessionDetail').then(module => ({ default: module.SessionDetail })));
-const Settings = lazy(() => import('./pages/Settings').then(module => ({ default: module.Settings })));
-const PricingPage = lazy(() => import('./pages/PricingPage').then(module => ({ default: module.PricingPage })));
-const UpgradeSuccess = lazy(() => import('./pages/UpgradeSuccess').then(module => ({ default: module.UpgradeSuccess })));
-const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
-const Signup = lazy(() => import('./pages/Signup').then(module => ({ default: module.Signup })));
-const SecurityPolicy = lazy(() => import('./pages/SecurityPolicy').then(module => ({ default: module.SecurityPolicy })));
-const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsDashboard').then(module => ({ default: module.AnalyticsDashboard })));
-const HowItWorks = lazy(() => import('./pages/HowItWorks').then(module => ({ default: module.HowItWorks })));
-const Outcomes = lazy(() => import('./pages/Outcomes').then(module => ({ default: module.Outcomes })));
-const MeetingNotes = lazy(() => import('./pages/MeetingNotes').then(module => ({ default: module.MeetingNotes })));
-const Privacy = lazy(() => import('./pages/Privacy').then(module => ({ default: module.Privacy })));
-const Terms = lazy(() => import('./pages/Terms').then(module => ({ default: module.Terms })));
+  // On a narrow screen the two panes cannot sit side by side.
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth <= 1100 && view === "split") setView("emp");
+    };
+    window.addEventListener("resize", onResize);
+    onResize();
+    return () => window.removeEventListener("resize", onResize);
+  }, [view, setView]);
 
-// Loading fallback
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-[50vh]">
-    <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-  </div>
-);
-
-function AppContent() {
-  useTheme(); // Initialize theme
+  const mode = employeeRoute ? "emp" : view;
 
   return (
-    <ErrorBoundary>
-      <LanguageProvider>
-        <HashRouter>
-          <SEOManager />
-          <SessionProvider>
-            <CommandPalette />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/how-it-works" element={<HowItWorks />} />
-              <Route path="/outcomes" element={<Outcomes />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/security" element={<SecurityPolicy />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              
-              <Route element={<Layout />}>
-                <Route path="/dashboard" element={<Home />} />
-                <Route path="/create" element={<CreateSession />} />
-                <Route path="/edit/:id" element={<EditSession />} />
-                <Route path="/session/:id" element={<SessionDetail />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/meeting-notes" element={<MeetingNotes />} />
-                <Route path="/analytics" element={<AnalyticsDashboard />} />
-                <Route path="/upgrade-success" element={<UpgradeSuccess />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </SessionProvider>
-      </HashRouter>
-    </LanguageProvider>
-    </ErrorBoundary>
+    <EmployeeStateProvider>
+      <div className={`stage v-${mode}`}>
+        <ViewBar mode={mode} employeeRoute={employeeRoute} />
+        <Routes>
+          <Route element={<ConsoleLayout />}>
+            <Route path="/" element={<Navigate to="/portal" replace />} />
+            <Route path="/portal" element={<EmployeePortalModule />} />
+            <Route path="/renewals" element={<RenewalsModule />} />
+            <Route path="/security" element={<JournalModule />} />
+            <Route path="/:module" element={<NotPortedModule />} />
+          </Route>
+          <Route path="/app" element={null} />
+        </Routes>
+        {mode !== "admin" && <EmployeeApp />}
+        {toastMessage && <div className="toast" role="status">{toastMessage}</div>}
+      </div>
+    </EmployeeStateProvider>
   );
 }
 
-export default function App() {
-  return <AppContent />;
+function ViewBar({ mode, employeeRoute }: { mode: string; employeeRoute: boolean }) {
+  const { setView } = useStore();
+  return (
+    <div className="viewbar">
+      <div>
+        <b>CareOps</b>{" "}
+        <span className="vsub">Employer console and employee app, one shared demo dataset</span>
+      </div>
+      <div className="vseg" role="tablist" aria-label="View">
+        <button data-v="split" className={mode === "split" ? "on" : ""} onClick={() => setView("split")} disabled={employeeRoute}>
+          Side by side
+        </button>
+        <button data-v="admin" className={mode === "admin" ? "on" : ""} onClick={() => setView("admin")} disabled={employeeRoute}>
+          Employer
+        </button>
+        <button data-v="emp" className={mode === "emp" ? "on" : ""} onClick={() => setView("emp")} disabled={employeeRoute}>
+          Employee
+        </button>
+      </div>
+      <a className="vbtn" href={PROTOTYPE_URL} target="_blank" rel="noreferrer">Prototype</a>
+    </div>
+  );
 }
-
