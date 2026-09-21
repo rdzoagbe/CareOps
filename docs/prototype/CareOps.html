@@ -868,12 +868,12 @@ function exportCsv(key){
 }
 
 /* ---------------- drawer ------------- */
-const DRAWER_TAB = {};
+const DRAWER_TAB = Object.create(null);
 function openRec(kind,id){ const p=new URLSearchParams(location.hash.split("?")[1]||""); p.set("rec",kind+":"+id); location.hash = "#/"+currentRoute()+"?"+p; }
 function closeDrawer(){ const p=new URLSearchParams(location.hash.split("?")[1]||""); if(!p.has("rec")) return; history.back(); }
 function hideDrawer(){ document.getElementById("drawer").classList.remove("on"); document.getElementById("scrim").classList.remove("on"); }
 function showDrawer(kind,id){
-  const build = DRAWERS[kind]; const d=document.getElementById("drawer");
+  const build = typeof DRAWERS[kind]==="function" ? DRAWERS[kind] : null; const d=document.getElementById("drawer");
   if(!build){ hideDrawer(); return; }
   const key=kind+":"+id;
   const html = build(id, DRAWER_TAB[key]||0, key);
@@ -913,7 +913,10 @@ function logEvent(action,object,result="Success",actor="C. Laurent"){
 /* ============================================================
    Pages
    ============================================================ */
-const PAGES = {};
+/* Null-prototype: these tables are keyed by values taken from the URL, and a
+   plain object would resolve "constructor" and friends through the prototype
+   chain, handing an attacker a callable that is not one of ours. */
+const PAGES = Object.create(null);
 function phead(title,sub,acts=""){ return `<div class="phead"><div><h1>${esc(title)}</h1><p>${sub}</p></div><div class="acts">${acts}</div></div>`; }
 function kpi(lab,val,sub,onclick,tone=""){ return `<button class="card kpi" onclick="${onclick||""}"><div class="lab">${lab}</div><div class="val">${val}</div><div class="sub ${tone}">${sub}</div></button>`; }
 function card(title,sub,body,right="",flush=false){
@@ -2796,7 +2799,7 @@ function renUpload(id) {
 /* ============================================================
    Drill-down drawers — every record opens with its relations
    ============================================================ */
-const DRAWERS = {};
+const DRAWERS = Object.create(null);
 
 DRAWERS.employee = (id,i,key) => {
   const e=empOf(id); if(!e) return null;
@@ -3200,7 +3203,7 @@ function pickResult(kind,id){
 }
 
 /* ---- router ---- */
-function currentRoute(){ const h=location.hash.replace(/^#\/?/,"").split("?")[0]; return PAGES[h]?h:"dashboard"; }
+function currentRoute(){ const h=location.hash.replace(/^#\/?/,"").split("?")[0]; return typeof PAGES[h]==="function" ? h : "dashboard"; }
 function currentRec(){ const p=new URLSearchParams(location.hash.split("?")[1]||""); return p.get("rec"); }
 function go(route){ location.hash="#/"+route; }
 function render(){

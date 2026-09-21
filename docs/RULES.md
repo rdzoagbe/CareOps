@@ -112,7 +112,17 @@ JavaScript before escaping for HTML. HTML escaping alone was not enough — the
 browser decodes entities before the JavaScript is parsed, so a single quote
 would still have broken out.
 
-*Proved:* `src/prototype.test.ts`, which pins both fixes at source level.
+A second, separate XSS in the same file: `DRAWERS[kind]` and `PAGES[route]`
+take their key from the hash, and on a plain object `DRAWERS["constructor"]`
+resolves to the `Object` constructor through the prototype chain — truthy,
+callable, and returning a boxed value rather than the `null` the code checks
+for, so the raw hash content reached `innerHTML` directly. The URL-keyed
+tables are now `Object.create(null)` and a builder is called only when it is
+genuinely one of ours. The same fix corrects a plain bug: `#/constructor` used
+to render `[object Object]` instead of falling back to the dashboard.
+
+*Proved:* `src/prototype.test.ts`, which pins every one of these fixes at
+source level.
 
 The prototype is also committed once, not twice. `docs/prototype/CareOps.html`
 is the source and `public/prototype/index.html` is generated from it at build

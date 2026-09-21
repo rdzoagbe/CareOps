@@ -48,6 +48,31 @@ describe("prototype: drawer markup escaping", () => {
   });
 });
 
+describe("prototype: lookup tables keyed by URL content", () => {
+  // `DRAWERS[kind]` and `PAGES[route]` take their key from the location hash.
+  // On a plain object, DRAWERS["constructor"] resolves to the Object
+  // constructor through the prototype chain: truthy, callable, and it returns
+  // a boxed value rather than null — so the raw hash content went straight
+  // into innerHTML. Reproduced before fixing.
+  it("gives the URL-keyed tables no prototype to inherit from", () => {
+    expect(source).toContain("const DRAWERS = Object.create(null);");
+    expect(source).toContain("const PAGES = Object.create(null);");
+    expect(source).toContain("const DRAWER_TAB = Object.create(null);");
+    expect(source).not.toContain("const DRAWERS = {};");
+    expect(source).not.toContain("const PAGES = {};");
+  });
+
+  it("calls a drawer builder only when it is really a function of ours", () => {
+    expect(source).toContain('typeof DRAWERS[kind]==="function"');
+    expect(source).not.toContain("const build = DRAWERS[kind];");
+  });
+
+  it("resolves a route only to a real page function", () => {
+    expect(source).toContain('typeof PAGES[h]==="function" ? h : "dashboard"');
+    expect(source).not.toContain('return PAGES[h]?h:"dashboard";');
+  });
+});
+
 describe("prototype: a single copy under version control", () => {
   it("is the only committed copy, with the served one generated", () => {
     // Two committed copies meant patching the same file twice, which is how a
