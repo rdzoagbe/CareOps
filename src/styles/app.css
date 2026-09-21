@@ -65,10 +65,16 @@ body { padding-top: var(--vb); }
 @media (max-width: 1100px) {
   .stage.v-split .emp-stage { display: none; }
   .stage.v-split .main { width: 100%; }
+  /* Two panes cannot sit together here, so the split option is not offered. */
+  .vseg button[data-v="split"] { display: none; }
 }
 
 @media (max-width: 760px) {
+  .viewbar { gap: 8px; padding: 0 10px; }
   .viewbar .vsub { display: none; }
+  .viewbar b { font-size: 12.5px; }
+  .vseg button { padding: 5px 9px; font-size: 11.5px; }
+  .vbtn { padding: 5px 7px; font-size: 11.5px; }
   .stage.v-emp .emp-stage { background: var(--pbg); }
   .stage.v-emp .frame { width: 100%; height: 100%; border-radius: 0; padding: 0; background: none; box-shadow: none; }
   .stage.v-emp .screen { border-radius: 0; }

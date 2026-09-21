@@ -60,13 +60,13 @@ function ViewBar({ mode, employeeRoute }: { mode: string; employeeRoute: boolean
         <span className="vsub">Employer console and employee app, one shared demo dataset</span>
       </div>
       <div className="vseg" role="tablist" aria-label="View">
-        <button className={mode === "split" ? "on" : ""} onClick={() => setView("split")} disabled={employeeRoute}>
+        <button data-v="split" className={mode === "split" ? "on" : ""} onClick={() => setView("split")} disabled={employeeRoute}>
           Side by side
         </button>
-        <button className={mode === "admin" ? "on" : ""} onClick={() => setView("admin")} disabled={employeeRoute}>
+        <button data-v="admin" className={mode === "admin" ? "on" : ""} onClick={() => setView("admin")} disabled={employeeRoute}>
           Employer
         </button>
-        <button className={mode === "emp" ? "on" : ""} onClick={() => setView("emp")} disabled={employeeRoute}>
+        <button data-v="emp" className={mode === "emp" ? "on" : ""} onClick={() => setView("emp")} disabled={employeeRoute}>
           Employee
         </button>
       </div>
