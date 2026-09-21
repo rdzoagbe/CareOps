@@ -97,6 +97,28 @@ identify a project rather than authorise access — Firestore Security Rules and
 App Check are what protect the data. Confirm the current rules before treating
 that key as harmless: <https://firebase.google.com/docs/projects/api-keys>.
 
+## The served prototype is hardened, not just archived
+
+`/prototype` serves real, executable HTML, so a flaw in it is a real flaw.
+CodeQL found a DOM XSS there and it was reproduced before being fixed: a
+crafted URL ran arbitrary script with no click, because `DRAWERS.coverage`
+took its id from the location hash and, alone among the drawers, had no lookup
+that could fail, so the raw value reached an unescaped `onclick` attribute.
+
+Two fixes, at different layers: the coverage drawer now fails closed on an
+unknown department like every other drawer, and values landing inside a JS
+string literal inside an attribute go through `jsq()`, which escapes for
+JavaScript before escaping for HTML. HTML escaping alone was not enough — the
+browser decodes entities before the JavaScript is parsed, so a single quote
+would still have broken out.
+
+*Proved:* `src/prototype.test.ts`, which pins both fixes at source level.
+
+The prototype is also committed once, not twice. `docs/prototype/CareOps.html`
+is the source and `public/prototype/index.html` is generated from it at build
+time, because two copies is how a security fix reaches one and misses the
+other.
+
 ## Demo content is fictional
 
 St. Gabriel Group and everyone in it are invented. Handbook policies quoted in

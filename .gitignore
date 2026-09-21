@@ -26,3 +26,9 @@ dist-ssr/
 coverage/
 .vite/
 .vercel/
+
+# generated from docs/prototype/CareOps.html by scripts/copy-prototype.mjs
+public/prototype/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

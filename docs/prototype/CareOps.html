@@ -746,6 +746,9 @@ const empOf = id => DB.employees.find(e=>e.id===id);
    UI engine: tables, charts, drawer, modal, toast
    ============================================================ */
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+/* For a value that lands inside a JS string literal inside an HTML attribute:
+   escape it for JavaScript first, then for HTML. */
+const jsq = s => esc(String(s==null?"":s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"));
 function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
 function tag(text,tone){ return `<span class="tag t-${tone}"><i class="dot"></i>${esc(text)}</span>`; }
 function statusTag(s){
@@ -883,11 +886,11 @@ function drawerShell(key,title,sub,tabs,body,actions=""){
   if(body===undefined||body===null) body="";
   return `<div class="dh"><div><h2>${esc(title)}</h2><div class="s">${sub}</div></div>
       <div class="x">${actions}<button class="ctl" onclick="closeDrawer()" aria-label="Close">✕</button></div></div>
-    <div class="dtabs">${tabs.map((t,n)=>`<button class="${n===i?"on":""}" onclick="dTab('${key}',${n})">${esc(t)}</button>`).join("")}</div>
+    <div class="dtabs">${tabs.map((t,n)=>`<button class="${n===i?"on":""}" onclick="dTab('${jsq(key)}',${n})">${esc(t)}</button>`).join("")}</div>
     <div class="dbody">${body}</div>`;
 }
 function relRow(label,sub,kind,id,right=""){
-  return `<button class="rw" onclick="openRec('${kind}','${id}')"><div class="g"><b>${esc(label)}</b><span class="s">${sub}</span></div>${right}<span style="color:var(--muted)">›</span></button>`;
+  return `<button class="rw" onclick="openRec('${jsq(kind)}','${jsq(id)}')"><div class="g"><b>${esc(label)}</b><span class="s">${sub}</span></div>${right}<span style="color:var(--muted)">›</span></button>`;
 }
 
 /* ---------------- modal ------------- */
@@ -3083,6 +3086,7 @@ function adoptOpportunity(id){ const o=DB.opportunities.find(x=>x.id===id); o.st
   logEvent("Workflow executed","Action created from "+id); toast("Action created and assigned to "+o.owner); render(); showDrawer("opportunity",id); }
 
 DRAWERS.coverage = (dept,i,key) => {
+  if(!DEPTS.includes(dept)) return null;
   const rows=F.coverage().filter(c=>c.dept===dept);
   const emp=F.employees().filter(e=>e.dept===dept);
   return drawerShell(key,dept+" coverage",`${rows.length} shift lines · ${facName(STATE.facility)}`,["Shifts","Team"],

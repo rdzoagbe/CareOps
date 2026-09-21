@@ -5,12 +5,14 @@
   "type": "module",
   "description": "CareOps — non-clinical back-office platform for hospitals: employer console and employee app.",
   "scripts": {
+    "prototype": "node scripts/copy-prototype.mjs",
+    "predev": "npm run prototype",
     "dev": "vite",
+    "prebuild": "npm run prototype",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "react": "^19.1.0",

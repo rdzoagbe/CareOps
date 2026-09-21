@@ -22,6 +22,10 @@ npm run build
 - `/app` — the employee app, full screen (this is what a phone opens)
 - `/prototype` — the original working prototype, all seventeen modules
 
+`public/prototype/index.html` is generated from `docs/prototype/CareOps.html`
+by `npm run prototype`, which `predev` and `prebuild` run for you. The source
+file is the only copy under version control.
+
 The bar at the top switches between **Side by side**, **Employer** and
 **Employee**. Below 1100px the two panes cannot sit together, so it falls back
 to the phone.
