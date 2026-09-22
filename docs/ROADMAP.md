@@ -13,7 +13,8 @@ Done:
   and tested
 - The contract guardrail, enforced and tested
 - The full prototype served at `/prototype`, so nothing is undemoable
-- 82 tests, and CI running typecheck, tests and build
+- The care side: clinical record, access rules, patient app
+- 125 tests, and CI running typecheck, tests and build
 
 Remaining, in the order they should be ported. Each is a self-contained pull
 request: move the module's screen into `src/console/modules`, read from the
@@ -36,9 +37,22 @@ Delete `public/prototype/` only once the list is empty, and keep
 `docs/prototype/CareOps.html` for ever as the reference the rebuild was made
 from.
 
+## The care side, next
+
+- Handover between shifts, and a ward round view
+- The care team as something a person is added to and removed from, with that
+  change itself recorded
+- Discharge: the summary, and what the patient leaves with
+- A validated permission matrix per establishment, replacing the demo one
+
+None of it stores real patient data. That step is gated on the legal work in
+docs/RULES.md, not on the code.
+
 ## Phase 2 — a real backend
 
 - Postgres in the EU, row-level security per customer
+- The care side hosted separately, on a host certified for health data, behind
+  its own `ClinicalRepository` implementation
 - Sign-in through Entra ID
 - Append-only audit log in the database, not only in memory
 - An HTTP implementation of `CareOpsRepository`

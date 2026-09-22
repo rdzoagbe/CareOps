@@ -4,13 +4,39 @@
 
 ```
 src/
-  data/        the dataset, its types, and the repository seam
-  ai/          the contract-revision guardrail
-  state/       demo state shared by both sides, plus the journal
-  console/     the employer console: shell, nav, modules
-  employee/    the employee app: shell, onboarding, five tabs, sheets
+  App.tsx      the composition root, and the only file that sees both sides
+
+  back office
+    data/      the dataset, its types, and the repository seam
+    ai/        the contract-revision guardrail
+    state/     demo state shared by both sides, plus the journal
+    console/   the employer console: shell, nav, modules
+    employee/  the employee app: shell, onboarding, five tabs, sheets
+
+  care
+    clinical/  patient records, the access rules, the clinical console
+    patient/   the patient's own app
+
   styles/      tokens.css (ported verbatim) and app.css (layout glue)
 ```
+
+## The wall
+
+The back office and the care side hold different kinds of data under different
+obligations. They have separate repositories, separate stores and separate
+generators, and `separation.test.ts` reads every source file to check that
+neither imports the other. The care side may use date and number formatting
+and the list of sites — helpers and organisational reference data, nothing
+personal.
+
+This is not tidiness. Health data may have to move to a certified host that
+payroll data does not need, and that is only possible later if the seam exists
+now.
+
+Access to a patient record goes through one decision point, `canRead`, with two
+independent gates: care-team membership, and what the reader's profession
+covers. `buildRecordView` assembles a record under that decision, so a screen
+never holds what it may not show. Both are covered in docs/RULES.md.
 
 ## The repository seam
 
@@ -97,6 +123,10 @@ proposal comes from, not what is allowed to pass.
 ```
 src/data/seed.test.ts           counts, determinism, foreign keys, reconciliation
 src/data/orders.test.ts         the ledger's arithmetic, and each alert rule alone
+src/clinical/data/access.test.ts   every profession against every class of record
+src/clinical/data/clinical.test.ts the care dataset, and the line on decision support
+src/clinical/care.test.tsx      the care screens, and the rules a user can see
+src/separation.test.ts          the import graph between the two sides
 src/ai/contractGuardrail.test.ts  what the assistant may and may not do
 src/app.test.tsx                the screens, and the rules users can see
 ```

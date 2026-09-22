@@ -3,13 +3,140 @@
 Each rule below says where it is enforced and what proves it. A rule with no
 enforcement point is a slogan, not a rule.
 
-## No patient data anywhere, minimal employee data
+## The back office holds no patient data, and cannot reach any
 
-The dataset has no field that could carry clinical information. Employee
-records hold what a back-office needs: role, department, contract, dates.
+The back-office dataset has no field that could carry clinical information, and
+employee records hold what a back office needs: role, department, contract,
+dates.
 
-*Enforced:* `src/data/types.ts`.
-*Proved:* `seed.test.ts` › "has no field that could carry a medical reason".
+CareOps now also has a care side, which does hold (fictional) patient records.
+That does not relax this rule, it hardens it: the two live in separate modules
+with separate repositories, and the import graph forbids either from reaching
+the other. `src/App.tsx` is the one file allowed to see both.
+
+The care side may use shared *helpers* — date and number formatting, and the
+list of sites, which is organisational rather than personal. Nothing else.
+
+*Enforced:* `src/data/types.ts`, and the module boundary itself.
+*Proved:* `seed.test.ts` › "has no field that could carry a medical reason";
+`separation.test.ts`, which reads every source file and fails on any import
+crossing the wall in either direction.
+
+## Two gates guard every patient record, and an emergency opens only one
+
+A read needs both: the reader is in the patient's care team, **and** their
+profession covers that class of data. They are deliberately separate, because
+declaring an emergency opens the first gate and never the second — it makes
+you a member of the team for that read, it does not make you a doctor.
+
+An emergency is recorded with the reason chosen from a fixed list, and appears
+in the patient's own app.
+
+*Enforced:* `src/clinical/data/access.ts` (`canRead`).
+*Proved:* `access.test.ts` › "never opens the profession gate as well", which
+checks every profession against every class of the record.
+
+## A reader never holds what they may not see
+
+Screens do not fetch a record and then hide parts of it. They receive a view
+assembled under an access decision, so what is refused is not in the object the
+screen holds — and therefore not in the page for anyone who opens the developer
+tools.
+
+*Enforced:* `src/clinical/data/record.ts` (`buildRecordView`).
+*Proved:* `access.test.ts` › "hands an outsider a view with no record in it at
+all", which asserts the patient's name is absent from the serialised view; the
+same was reproduced in a browser against the built application.
+
+## Access is by scope of practice, and the limits are stated, not hidden
+
+A care assistant does not read diagnoses or medication. A physiotherapist reads
+only the prescriptions that bear on a session, only the diagnoses the referral
+rests on, and not the nursing note stream. Where a grant is partial the screen
+says what the limit is instead of quietly showing less.
+
+Only a doctor may prescribe or record a diagnosis.
+
+The matrix in `PERMISSIONS` is **a starting configuration for a demo, not a
+legal standard**. Every establishment has to validate it against each
+profession's actual scope of practice, with its DPO and its medical board. It
+is written as data, in one place, so a validated matrix replaces it without
+touching a screen.
+
+*Enforced:* `src/clinical/data/access.ts` (`PERMISSIONS`).
+*Proved:* `access.test.ts`; `care.test.tsx` › "shows a different record to a
+care assistant than to a doctor".
+
+## Every opening of a patient record is visible to the patient
+
+The clinical console writes to the file-access list as part of the same call
+that reads the record — logging is not a side effect a screen can forget. The
+patient app reads that same list, not a copy.
+
+*Enforced:* `src/clinical/state.tsx` (`openRecord`), `src/patient/PatientApp.tsx`.
+*Proved:* `care.test.tsx` › "shows the patient their own file-access list";
+verified end to end in a browser: an emergency declared in the console appears
+in the patient's app without a reload.
+
+## CareOps records a prescription, it does not advise on one
+
+It does not suggest a drug, calculate or adjust a dose, check interactions,
+allergies or contraindications, or raise any alert about the clinical content
+of a prescription. Software that does those things is doing a different job and
+is regulated as such (EU 2017/745). This is a product decision, stated on the
+screen where a prescription is written.
+
+The strongest form of the guarantee is not a policy but an absence: the
+formulary holds no interaction or contraindication data, so there is nothing to
+check against. Doses and frequencies are chosen from the entry for that drug;
+none is computed.
+
+Allergies are recorded because a human needs to read them. Nothing compares a
+prescription against them.
+
+*Enforced:* `src/clinical/data/formulary.ts`, `src/clinical/PatientRecord.tsx`.
+*Proved:* `clinical.test.ts` › "no clinical decision support", which pins the
+shape of every formulary entry and checks every generated prescription against
+the lists it came from.
+
+## Fictional patients, and identifiers that cannot be mistaken for real ones
+
+Every patient, clinician and record on the care side is invented. Every
+identifier standing in for a national health identifier carries the prefix
+`DEMO-NOT-AN-INS-`, so a demo record cannot be loaded anywhere expecting a real
+one, and professional registration numbers carry `DEMO-REG-`.
+
+*Enforced:* `src/clinical/data/formulary.ts` (`DEMO_INS_PREFIX`).
+*Proved:* `clinical.test.ts` › "marks every identifier so it cannot be taken
+for a real one".
+
+## What has to be verified before any real patient data exists
+
+Nothing in this repository has been checked by a lawyer, and the following is
+what to confirm rather than what is confirmed. It is recorded here because the
+code was written around it.
+
+- **Health data is Article 9 GDPR** — special category, needing its own legal
+  basis, separate from the one covering staff data.
+- **Hosting.** France requires health data to be held by an HDS-certified host
+  (*hébergeur de données de santé*). The current deployment target, Vercel, is
+  not certified for this as far as is known here, which is why the care side has
+  its own repository seam: it has to be able to move without a screen changing.
+- **Medical device classification.** Prescription software can fall under EU
+  MDR 2017/745 depending on what it does. The rule above is what keeps this
+  product on one side of that line, and it needs confirming by counsel before
+  anything changes.
+- **Identity.** A national health identifier (INS in France) is required for
+  referencing health data, with its own rules on how it is obtained and used.
+- **Professional secrecy** and access restricted to the care team, which is
+  what the two gates implement — but the matrix itself needs validating.
+- **Interoperability** requirements (Ségur, CI-SIS) shape whether an
+  establishment can buy the product at all.
+
+Sources to confirm with: the **CNIL**, the **ANS** (Agence du Numérique en
+Santé) for hosting and identity, and counsel for the device question. None of
+these was verifiable from the environment this was built in, and none should be
+taken on the word of this file.
 
 ## Silence never counts as acceptance of a contract
 

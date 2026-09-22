@@ -1,9 +1,15 @@
 # CareOps
 
-Non-clinical back-office for hospitals. Two sides, one dataset:
+Hospital software in two halves, kept deliberately apart:
 
-- an **employer console** for HR, finance, procurement and compliance, and
-- an **employee app** the staff actually use, on their phone.
+| Workspace | Console | App |
+| --- | --- | --- |
+| **Back office** | Employer console — HR, finance, procurement, compliance | Employee phone |
+| **Care** | Clinical record — doctors, nurses, care assistants, physiotherapists, osteopaths | Patient phone |
+
+The two hold different kinds of data under different obligations, so they have
+separate modules, separate repositories, and an import graph that forbids
+either from reaching the other. See [docs/RULES.md](docs/RULES.md).
 
 This repository replaces MindMark. The final MindMark state is preserved on the
 branch [`mindmark-final-v1.0.3`](../../tree/mindmark-final-v1.0.3) and the tags
@@ -14,7 +20,7 @@ branch [`mindmark-final-v1.0.3`](../../tree/mindmark-final-v1.0.3) and the tags
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 82 tests
+npm test         # 125 tests
 npm run build
 ```
 
@@ -32,6 +38,8 @@ sub-path. See `src/config.ts`.
 
 - `/` — the employer console, opening on the Employee Portal
 - `/app` — the employee app, full screen (this is what a phone opens)
+- `/care` — the clinical console, with the patient app beside it
+- `/patient` — the patient app, full screen
 - `/prototype` — the original working prototype, all seventeen modules
 
 `public/prototype/index.html` is generated from `docs/prototype/CareOps.html`
@@ -81,6 +89,51 @@ What it may not do is as fixed as what it does: it cannot cancel, block or
 change an order, it never names the person who ordered, and it is closed by a
 human choosing a reason from a fixed list. See [docs/RULES.md](docs/RULES.md).
 
+## The care side
+
+The clinical record is built around one question: *may this person see this
+part of this record?* Two gates, and a read needs both.
+
+1. **Is the reader in this patient's care team?** Nobody outside it opens a
+   record; the ward list shows initials only. A reader may declare an
+   emergency, choosing a reason from a fixed list — it is recorded and the
+   patient sees it.
+2. **Does the reader's profession cover that class of data?** A care assistant
+   reads the care plan, not diagnoses or medication. A physiotherapist reads
+   the prescriptions that bear on a session, not the whole list, and the screen
+   says so rather than quietly showing less. Only a doctor may prescribe.
+
+The gates are separate on purpose: **an emergency opens the first and never the
+second.** It makes you a member of the team for that read; it does not make you
+a doctor.
+
+The fastest way to see this is real is the identity picker at the top of the
+console — open the same patient as a doctor and then as a care assistant.
+
+What a refused reader is not given, they never hold: screens receive a view
+assembled under an access decision, so refused data is not in the page at all,
+not merely hidden.
+
+Everything the console opens is written to the patient's own file-access list,
+which they read in their app. It is the same list, not a copy.
+
+### One line the product does not cross
+
+CareOps records a prescription a prescriber decided on. It does not suggest a
+drug, calculate a dose, or check interactions, allergies or contraindications.
+Software that does those things is regulated differently (EU 2017/745). The
+formulary holds no interaction data at all, so there is nothing to check
+against — which is a stronger guarantee than a policy.
+
+### Before any real patient data
+
+Everything here is fictional, and identifiers carry `DEMO-NOT-AN-INS-` so they
+cannot be mistaken for real ones. Moving to real patient data needs legal
+confirmation first — hosting certification, the device question, health
+identity, and the permission matrix itself. What to verify, and with whom, is
+listed in [docs/RULES.md](docs/RULES.md). None of it was verifiable from the
+environment this was built in, and none of it is legal advice.
+
 ## The employee app
 
 Five tabs plus onboarding, built for someone holding a phone on a ward:
@@ -121,6 +174,12 @@ interface. They are in [docs/RULES.md](docs/RULES.md).
   clauses from a validated library — never pay, never invented wording.
 - An over-ordering alert asks a question. It never cancels, blocks or changes
   an order, and it names a service and an item, never a person.
+- The back office holds no patient data and cannot reach any; the import graph
+  enforces it.
+- Two gates guard every patient record, and declaring an emergency opens only
+  one of them.
+- Every opening of a patient record is visible to the patient.
+- CareOps records a prescription; it never advises on one.
 - No secrets or Firebase keys committed.
 
 ## Demo data is fictional
