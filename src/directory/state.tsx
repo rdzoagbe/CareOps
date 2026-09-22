@@ -38,17 +38,17 @@ export function DirectoryProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     mounted.current = true;
-    void Promise.all([defaultRepository.load(), defaultClinicalRepository.load()]).then(
-      ([office, care]) => {
-        if (!mounted.current) return;
-        setDirectory(
-          buildDirectory(
-            office.db.employees.map(staffRecord),
-            care.db.clinicians.map(careRecord),
-          ),
-        );
-      },
-    );
+    // The roster, not the snapshot: this layer has no business holding a
+    // patient record, and asking for one is how it would end up with them all.
+    void Promise.all([
+      defaultRepository.load(),
+      defaultClinicalRepository.loadClinicians(),
+    ]).then(([office, clinicians]) => {
+      if (!mounted.current) return;
+      setDirectory(
+        buildDirectory(office.db.employees.map(staffRecord), clinicians.map(careRecord)),
+      );
+    });
     return () => { mounted.current = false; };
   }, []);
 

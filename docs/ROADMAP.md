@@ -15,7 +15,7 @@ Done:
 - The full prototype served at `/prototype`, so nothing is undemoable
 - The care side: clinical record, access rules, patient app
 - The directory: one person across three platforms, and who may open what
-- 157 tests, and CI running typecheck, tests and build
+- 161 tests, and CI running typecheck, tests and build
 
 Remaining, in the order they should be ported. Each is a self-contained pull
 request: move the module's screen into `src/console/modules`, read from the

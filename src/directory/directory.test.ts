@@ -128,8 +128,8 @@ describe("rule 2: whoever administers access never reads content", () => {
       grantedBy: director.name,
     };
     expect(isAccessAdministrator(director, today)).toBe(false);
-    expect(grantRefusals(target, grant, false)).toContain("Only an access administrator may grant a role.");
-    expect(grantRefusals(target, grant, true)).not.toContain("Only an access administrator may grant a role.");
+    expect(grantRefusals(target, grant, false, "PSN-ACTOR")).toContain("Only an access administrator may grant a role.");
+    expect(grantRefusals(target, grant, true, "PSN-ACTOR")).not.toContain("Only an access administrator may grant a role.");
   });
 
   it("has exactly one access administrator in the demo, and they hold no care role", () => {
@@ -147,10 +147,10 @@ describe("rule 3: access that is not permanent has an end date", () => {
       role: "staff", facility: temporary.facility, service: null, from: today, until: null,
       grantedBy: "admin",
     };
-    expect(grantRefusals(temporary, open, true).join(" ")).toMatch(/end date/i);
+    expect(grantRefusals(temporary, open, true, "PSN-ACTOR").join(" ")).toMatch(/end date/i);
 
     const dated = { ...open, until: iso(dayAdd(90)) };
-    expect(grantRefusals(temporary, dated, true)).toEqual([]);
+    expect(grantRefusals(temporary, dated, true, "PSN-ACTOR")).toEqual([]);
   });
 
   it("gives every temporary person's grants an end date already", () => {
@@ -191,10 +191,10 @@ describe("rule 3: access that is not permanent has an end date", () => {
     const external = people.find((p) => p.employment === "External")!;
     expect(external).toBeDefined();
     const hr: RoleGrant = { role: "hr", facility: external.facility, service: null, from: today, until: iso(dayAdd(90)), grantedBy: "admin" };
-    expect(grantRefusals(external, hr, true).join(" ")).toMatch(/no employment contract/i);
+    expect(grantRefusals(external, hr, true, "PSN-ACTOR").join(" ")).toMatch(/no employment contract/i);
 
     const osteo: RoleGrant = { ...hr, role: "osteopath" };
-    expect(grantRefusals(external, osteo, true)).toEqual([]);
+    expect(grantRefusals(external, osteo, true, "PSN-ACTOR")).toEqual([]);
   });
 });
 
@@ -228,7 +228,7 @@ describe("rule 4: leaving or suspension closes every platform at once", () => {
         id: "PSN-TEST3", name: "T. Test", facility: "PAR", service: "ICU",
         employment: "Permanent", status, grants: [], employeeRef: null, clinicianRef: null,
       };
-      expect(grantRefusals(person, grant, true).length).toBeGreaterThan(0);
+      expect(grantRefusals(person, grant, true, "PSN-ACTOR").length).toBeGreaterThan(0);
     }
   });
 
@@ -300,6 +300,34 @@ describe("the lockout guard", () => {
     expect(revocationRefusals(admin, people, "PSN-OTHER", today, true).join(" ")).toMatch(
       /last access administrator/i,
     );
+  });
+
+  it("stops an administrator granting a role to themselves", () => {
+    // Found in review. `revocationRefusals` had this check and `grantRefusals`
+    // did not, so the access administrator — whose whole role is to hold no
+    // access to content — could hand themselves a care role and read patient
+    // records, contradicting their own role definition.
+    const toSelf: RoleGrant = {
+      role: "doctor", facility: admin.facility, service: null,
+      from: today, until: null, grantedBy: admin.name,
+    };
+    expect(grantRefusals(admin, toSelf, true, admin.id).join(" ")).toMatch(
+      /cannot grant a role to yourself/i,
+    );
+    expect(mayOpenPatientRecord(admin, today)).toBe(false);
+
+    // The same grant from a different administrator is fine.
+    expect(grantRefusals(admin, toSelf, true, "PSN-SOMEONE-ELSE")).toEqual([]);
+  });
+
+  it("stops a self-grant of every role, not only the dangerous-looking ones", () => {
+    for (const role of ROLES) {
+      const g: RoleGrant = {
+        role: role.key, facility: admin.facility, service: null,
+        from: today, until: null, grantedBy: admin.name,
+      };
+      expect(grantRefusals(admin, g, true, admin.id).length).toBeGreaterThan(0);
+    }
   });
 
   it("does not block an ordinary revocation on the administrator", () => {

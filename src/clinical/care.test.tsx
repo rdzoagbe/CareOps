@@ -120,6 +120,63 @@ describe("the clinical console", () => {
   });
 });
 
+describe("holes found in review", () => {
+  // The toggle keeps its state across an identity switch, so only click it
+  // when the list is still filtered to "my patients".
+  const wholeWard = async () => {
+    const toggle = screen.queryByRole("button", { name: "Show the whole ward" });
+    if (toggle) await userEvent.click(toggle);
+    return screen.getByText("Ward list").closest("section")!;
+  };
+
+  it("does not carry one clinician's emergency over to the next one signed in", async () => {
+    renderAt("/care");
+    await ready();
+    let list = await wholeWard();
+    const other = within(list).getAllByRole("row").slice(1)
+      .find((r) => within(r).queryByText("Another team"))!;
+    const room = within(other).getAllByRole("cell")[0].textContent!.trim().slice(0, 9);
+
+    await userEvent.click(other);
+    let box = (await screen.findByRole("button", { name: "Close" })).closest(".mbox")! as HTMLElement;
+    await userEvent.click(within(box).getByRole("button", { name: /Declare an emergency/ }));
+    await userEvent.click(within(box).getByRole("button", { name: /Declare it and open/ }));
+    expect(within(box).getByText(/emergency access, recorded/)).toBeInTheDocument();
+    await userEvent.click(within(box).getByRole("button", { name: "Close" }));
+
+    // Someone else sits down at the same screen. The declaration was not
+    // theirs, so the record must be shut again — no name, no record, and
+    // nothing written to the patient's access list on their behalf.
+    await signInAs(workingClinician("Doctor").id);
+    list = await wholeWard();
+    const sameRow = within(list).getAllByRole("row").slice(1)
+      .find((r) => r.textContent?.includes(room))!;
+    expect(sameRow).toBeDefined();
+    expect(within(sameRow).getByText("not in your care team")).toBeInTheDocument();
+
+    await userEvent.click(sameRow);
+    box = (await screen.findByRole("button", { name: "Close" })).closest(".mbox")! as HTMLElement;
+    expect(within(box).getByText("You are not in this care team")).toBeInTheDocument();
+  });
+
+  it("refuses the file-access list to someone outside the care team", async () => {
+    // This tab used to be exempt from the care-team gate, so an outsider could
+    // read who treats whom — and the read was never logged, because an
+    // outsider's view reads nothing.
+    renderAt("/care");
+    await ready();
+    const list = await wholeWard();
+    const other = within(list).getAllByRole("row").slice(1)
+      .find((r) => within(r).queryByText("Another team"))!;
+    await userEvent.click(other);
+
+    const box = (await screen.findByRole("button", { name: "Close" })).closest(".mbox")! as HTMLElement;
+    await userEvent.click(within(box).getByRole("button", { name: /Who opened this file/ }));
+    expect(within(box).getByText("You are not in this care team")).toBeInTheDocument();
+    expect(within(box).queryByText("Parts opened")).not.toBeInTheDocument();
+  });
+});
+
 describe("the patient app", () => {
   it("shows the patient their own file-access list", async () => {
     renderAt("/patient");

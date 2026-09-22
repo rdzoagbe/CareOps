@@ -28,7 +28,7 @@ branch [`mindmark-final-v1.0.3`](../../tree/mindmark-final-v1.0.3) and the tags
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 157 tests
+npm test         # 161 tests
 npm run build
 ```
 

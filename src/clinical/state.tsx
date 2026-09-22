@@ -29,8 +29,16 @@ interface ClinicalValue {
   /** The clinician the demo is signed in as. Switchable, which is the point. */
   me: Clinician;
   setMe: (id: string) => void;
-  /** Patient ids this clinician declared an emergency on, this session. */
-  emergencies: string[];
+  /**
+   * Whether the clinician now signed in declared an emergency on this patient.
+   *
+   * Keyed by clinician AND patient, not by patient alone. Keyed by patient
+   * alone, one person's declaration opened the record for whoever signed in
+   * next — with no declaration, no warning, and no entry in the patient's
+   * access list, since nothing is logged until a record is read. A shared ward
+   * workstation with user switching is exactly the shape of that mistake.
+   */
+  hasEmergency: (patientId: string) => boolean;
   declareEmergency: (patientId: string, reason: string) => void;
   /** Reads the record under the current identity, and logs the read. */
   openRecord: (patientId: string) => PatientRecordView;
@@ -55,6 +63,7 @@ export function ClinicalProvider({
 }) {
   const [db, setDb] = useState<ClinicalDataset | null>(null);
   const [meId, setMeId] = useState<string | null>(null);
+  // Entries are `${clinicianId}|${patientId}`.
   const [emergencies, setEmergencies] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const counter = useRef(0);
@@ -91,9 +100,16 @@ export function ClinicalProvider({
 
   const me = db && meId ? db.clinicians.find((c) => c.id === meId)! : null;
 
+  const emergencyKey = (clinicianId: string, patientId: string) => `${clinicianId}|${patientId}`;
+
+  const hasEmergency = useCallback(
+    (patientId: string) => (meId ? emergencies.includes(emergencyKey(meId, patientId)) : false),
+    [emergencies, meId],
+  );
+
   const openRecord = useCallback(
     (patientId: string): PatientRecordView => {
-      const ctx = contextFor(db!, meId!, patientId, emergencies.includes(patientId));
+      const ctx = contextFor(db!, meId!, patientId, hasEmergency(patientId));
       const view = buildRecordView(db!, patientId, ctx);
       if (view.read.length > 0) {
         const already = db!.access.some(
@@ -115,7 +131,7 @@ export function ClinicalProvider({
       }
       return view;
     },
-    [db, meId, emergencies, me],
+    [db, meId, hasEmergency, me],
   );
 
   // Flush the queued read entries once the render that produced them is done.
@@ -128,7 +144,8 @@ export function ClinicalProvider({
 
   const declareEmergency = useCallback(
     (patientId: string, reason: string) => {
-      setEmergencies((e) => (e.includes(patientId) ? e : [...e, patientId]));
+      const key = emergencyKey(meId!, patientId);
+      setEmergencies((e) => (e.includes(key) ? e : [...e, key]));
       counter.current += 1;
       update((d) => {
         d.access.unshift({
@@ -149,12 +166,12 @@ export function ClinicalProvider({
 
   const guard = useCallback(
     (patientId: string, cls: Parameters<typeof canWrite>[1]): boolean => {
-      const ctx = contextFor(db!, meId!, patientId, emergencies.includes(patientId));
+      const ctx = contextFor(db!, meId!, patientId, hasEmergency(patientId));
       if (canWrite(ctx, cls)) return true;
       toast("Your profession does not write to this part of the record.");
       return false;
     },
-    [db, meId, emergencies, toast],
+    [db, meId, hasEmergency, toast],
   );
 
   const completeTask = useCallback(
@@ -230,11 +247,11 @@ export function ClinicalProvider({
   const value = useMemo<ClinicalValue | null>(() => {
     if (!db || !me) return null;
     return {
-      db, me, setMe: setMeId, emergencies, declareEmergency, openRecord,
+      db, me, setMe: setMeId, hasEmergency, declareEmergency, openRecord,
       completeTask, recordAdministration, addNote, prescribe, toastMessage, toast,
     };
   }, [
-    db, me, emergencies, declareEmergency, openRecord, completeTask,
+    db, me, hasEmergency, declareEmergency, openRecord, completeTask,
     recordAdministration, addNote, prescribe, toastMessage, toast,
   ]);
 

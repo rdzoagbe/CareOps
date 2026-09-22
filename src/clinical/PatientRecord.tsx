@@ -45,7 +45,7 @@ function Refused({ d, onEmergency }: { d: AccessDecision; onEmergency?: () => vo
 
 export function PatientRecord({ patient, onClose }: { patient: Patient; onClose: () => void }) {
   const {
-    db, me, openRecord, emergencies, declareEmergency, completeTask,
+    db, me, openRecord, hasEmergency, declareEmergency, completeTask,
     recordAdministration, addNote, prescribe, toast,
   } = useClinical();
   const [tab, setTab] = useState<TabKey>("overview");
@@ -53,7 +53,7 @@ export function PatientRecord({ patient, onClose }: { patient: Patient; onClose:
   const [reason, setReason] = useState(EMERGENCY_REASONS[0]);
 
   const view = openRecord(patient.id);
-  const ctx = contextFor(db, me.id, patient.id, emergencies.includes(patient.id));
+  const ctx = contextFor(db, me.id, patient.id, hasEmergency(patient.id));
   const nameOf = (id: string) => db.clinicians.find((c) => c.id === id)?.name ?? id;
 
   const accessList = useMemo(
@@ -115,23 +115,28 @@ export function PatientRecord({ patient, onClose }: { patient: Patient; onClose:
                 })}
               </div>
 
-              {!onTeam && tab !== "access" ? (
+              {/* Every tab obeys the care-team gate, the access list included.
+                  Exempting it leaked who treats whom — clinician-patient
+                  association is health data in itself — and, because an
+                  outsider's view reads nothing, the browsing was never written
+                  to the very list it was displaying. */}
+              {!onTeam ? (
                 <Refused d={d("identity")} onEmergency={startEmergency} />
               ) : (
                 <>
-                  {tab === "overview" && (
+                  {tab === "overview" && view.patient && (
                     <>
                       <dl className="kv">
-                        <dt>Born</dt><dd>{dstr(new Date(patient.born + "T12:00:00Z"))}</dd>
-                        <dt>Admitted</dt><dd>{dstr(new Date(patient.admitted + "T12:00:00Z"))} · {patient.reason}</dd>
-                        <dt>Expected home</dt><dd>{patient.expectedDischarge ? dstr(new Date(patient.expectedDischarge + "T12:00:00Z")) : "—"}</dd>
-                        <dt>Autonomy</dt><dd>{patient.autonomy} · {patient.mobility}</dd>
+                        <dt>Born</dt><dd>{dstr(new Date(view.patient.born + "T12:00:00Z"))}</dd>
+                        <dt>Admitted</dt><dd>{dstr(new Date(view.patient.admitted + "T12:00:00Z"))} · {view.patient.reason}</dd>
+                        <dt>Expected home</dt><dd>{view.patient.expectedDischarge ? dstr(new Date(view.patient.expectedDischarge + "T12:00:00Z")) : "—"}</dd>
+                        <dt>Autonomy</dt><dd>{view.patient.autonomy} · {view.patient.mobility}</dd>
                         <dt>Allergies</dt>
-                        <dd>{patient.allergies.length
-                          ? patient.allergies.map((a) => <span key={a} className="tag t-bad" style={{ marginRight: 4 }}><i className="dot" />{a}</span>)
+                        <dd>{view.patient.allergies.length
+                          ? view.patient.allergies.map((a) => <span key={a} className="tag t-bad" style={{ marginRight: 4 }}><i className="dot" />{a}</span>)
                           : "None recorded"}</dd>
-                        <dt>Person to inform</dt><dd>{patient.consent.trustedPerson ?? "None named"}</dd>
-                        <dt>Identifier</dt><dd><span className="sec">{patient.ins}</span></dd>
+                        <dt>Person to inform</dt><dd>{view.patient.consent.trustedPerson ?? "None named"}</dd>
+                        <dt>Identifier</dt><dd><span className="sec">{view.patient.ins}</span></dd>
                       </dl>
 
                       <h3 style={{ margin: "14px 0 4px", fontSize: 13 }}>Diagnoses</h3>

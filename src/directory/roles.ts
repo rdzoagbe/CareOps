@@ -22,10 +22,12 @@
  * 4. **Leaving or being suspended revokes everything at once**, on all three
  *    platforms, because there is one directory entry rather than three.
  *
- * And one safeguard that is not a rule about privacy but about not locking
- * everybody out: nobody may change their own access, and the last access
- * administrator cannot be removed. Without it, one click ends the ability to
- * grant anything ever again — including the ability to undo that click.
+ * And two safeguards that are not rules about privacy. Nobody may change their
+ * own access — neither granting nor revoking — because an administrator who
+ * can grant to themselves is one click away from every permission they are
+ * meant not to have. And the last access administrator cannot be removed,
+ * because one click would otherwise end the ability to grant anything ever
+ * again, including the ability to undo that click.
  */
 import type { EmploymentKind, Person, Platform, RoleDef, RoleGrant } from "./types";
 
@@ -243,6 +245,7 @@ export function grantRefusals(
   person: Person,
   grant: RoleGrant,
   grantedByIsAccessAdmin: boolean,
+  actingId: string,
 ): string[] {
   const out: string[] = [];
   const def = roleByKey(grant.role);
@@ -253,6 +256,14 @@ export function grantRefusals(
   }
   if (!grantedByIsAccessAdmin) {
     out.push("Only an access administrator may grant a role.");
+  }
+  // The same self-check `revocationRefusals` has, and for the same reason.
+  // Without it the access administrator — whose whole role is to hold no
+  // access to content — could hand themselves a care role and read patient
+  // records. `actingId` is required rather than optional so a future caller
+  // cannot omit it and silently reopen the hole.
+  if (person.id === actingId) {
+    out.push("You cannot grant a role to yourself. Ask another administrator.");
   }
   if (person.status === "Left") {
     out.push("This person has left. Nothing can be granted to them.");

@@ -33,8 +33,15 @@ is the failure this layer exists to prevent.
 kind of contract they are on, and what has been granted to them. It holds **no
 pay and nothing clinical**, which is what earns it the right to see both sides.
 
+It asks for no more than it needs, either: the provider reads the clinician
+roster through `loadClinicians()` rather than the whole clinical snapshot.
+In the browser that is a matter of what stays resident; behind an HTTP
+repository it is the difference between a roster request and an HR user's
+browser fetching the patient record set.
+
 *Enforced:* `src/directory/build.ts` takes narrow records, not `Employee` and
-`Clinician`, so there is no salary field to read and no patient in scope.
+`Clinician`, so there is no salary field to read and no patient in scope;
+`ClinicalRepository.loadClinicians()` cannot return one.
 *Proved:* `directory.test.ts` › "carries no pay and nothing clinical", which
 checks the output rather than the imports; `separation.test.ts` › "and App are
 the only two places that touch both".
@@ -91,17 +98,25 @@ doctor who held Care and Staff app left "Platforms today: None".
 
 ## Nobody may change their own access, and the last administrator stays
 
-A lockout guard rather than a confidentiality rule. Someone who can change
-their own access can escalate quietly, and an establishment with no access
-administrator left has no way back — including no way to undo the click that
-caused it.
+Neither granting nor revoking. An administrator who can grant to themselves is
+one click from every permission the role exists not to have — the access
+administrator could hand themselves a care role and read patient records,
+contradicting their own role definition, which says in as many words that they
+may not. And an establishment with no access administrator left has no way
+back, including no way to undo the click that caused it.
 
-This was found by doing it: suspending the access administrator while acting as
-them removed the only person who could reverse it, and took the screen down
-with it.
+Both halves were found by trying them. Suspending the access administrator
+while acting as them removed the only person who could reverse it and took the
+screen down; and `grantRefusals` had no self-check at all while
+`revocationRefusals` did.
 
-*Enforced:* `src/directory/roles.ts` (`revocationRefusals`).
-*Proved:* `directory.test.ts` › "the lockout guard".
+`actingId` is a required argument of `grantRefusals` rather than an optional
+one, so a future caller cannot omit it and silently reopen the hole.
+
+*Enforced:* `src/directory/roles.ts` (`grantRefusals`, `revocationRefusals`).
+*Proved:* `directory.test.ts` › "stops an administrator granting a role to
+themselves", which also checks every role in the catalogue, not only the
+dangerous-looking ones.
 
 ## Two gates guard every patient record, and an emergency opens only one
 
@@ -113,9 +128,18 @@ you a member of the team for that read, it does not make you a doctor.
 An emergency is recorded with the reason chosen from a fixed list, and appears
 in the patient's own app.
 
-*Enforced:* `src/clinical/data/access.ts` (`canRead`).
+An emergency belongs to the clinician who declared it, not to the patient it
+was declared on. Keyed by patient alone, one person's declaration opened the
+record for whoever signed in next — no declaration, no warning, and no entry in
+the patient's access list, since nothing is logged until a record is read. A
+shared ward workstation with user switching is exactly the shape of that
+mistake, so the state is keyed by clinician and patient together.
+
+*Enforced:* `src/clinical/data/access.ts` (`canRead`), `src/clinical/state.tsx`
+(`hasEmergency`).
 *Proved:* `access.test.ts` › "never opens the profession gate as well", which
-checks every profession against every class of the record.
+checks every profession against every class of the record; `care.test.tsx` ›
+"does not carry one clinician's emergency over to the next one signed in".
 
 ## A reader never holds what they may not see
 
@@ -124,10 +148,22 @@ assembled under an access decision, so what is refused is not in the object the
 screen holds — and therefore not in the page for anyone who opens the developer
 tools.
 
-*Enforced:* `src/clinical/data/record.ts` (`buildRecordView`).
+Every tab obeys the gate, the file-access list included. Exempting that one tab
+leaked who treats whom — clinician-patient association is health data in itself
+— and because an outsider's view reads nothing, the browsing was never written
+to the very list it was displaying.
+
+The screens read the redacted view rather than the record they were handed, so
+a profession that is one day given `identity: "none"` cannot be shown identity
+data the view had already removed.
+
+*Enforced:* `src/clinical/data/record.ts` (`buildRecordView`),
+`src/clinical/PatientRecord.tsx`.
 *Proved:* `access.test.ts` › "hands an outsider a view with no record in it at
-all", which asserts the patient's name is absent from the serialised view; the
-same was reproduced in a browser against the built application.
+all", which asserts the patient's name is absent from the serialised view;
+`care.test.tsx` › "refuses the file-access list to someone outside the care
+team"; `separation.test.ts` › "renders the redacted patient, not the one the
+component was handed". Reproduced in a browser against the built application.
 
 ## Access is by scope of practice, and the limits are stated, not hidden
 

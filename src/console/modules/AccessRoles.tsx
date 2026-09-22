@@ -320,7 +320,7 @@ function PersonSheet({
       : null,
     grantedBy: actingName,
   };
-  const refusals = grantRefusals(person, proposed, actingIsAccessAdmin);
+  const refusals = grantRefusals(person, proposed, actingIsAccessAdmin, actingId);
 
   /** Suspending closes every platform, so it is guarded like a revocation. */
   const suspendRefusals = revocationRefusals(

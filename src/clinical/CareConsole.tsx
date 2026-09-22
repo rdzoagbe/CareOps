@@ -27,7 +27,7 @@ const ageOf = (born: string): number => {
 };
 
 export function CareConsole() {
-  const { db, me, setMe, emergencies, toastMessage } = useClinical();
+  const { db, me, setMe, hasEmergency, toastMessage } = useClinical();
   const [service, setService] = useState<string>(me.service);
   const [openId, setOpenId] = useState<string | null>(null);
   const [mineOnly, setMineOnly] = useState(true);
@@ -164,7 +164,7 @@ export function CareConsole() {
                   <tbody>
                     {visible.map((p) => {
                       const mine = p.careTeam.includes(me.id);
-                      const emergency = emergencies.includes(p.id);
+                      const emergency = hasEmergency(p.id);
                       return (
                         <tr key={p.id} onClick={() => setOpenId(p.id)}>
                           <td><b style={{ fontWeight: 500 }}>{p.room}</b><div className="sec">{p.service}</div></td>

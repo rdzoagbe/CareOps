@@ -149,6 +149,40 @@ describe("the directory is a join, not a third copy", () => {
   });
 });
 
+describe("the join asks for no more than it needs", () => {
+  // Found in review: the provider called `load()` and used one field of the
+  // snapshot, leaving every patient record resident in a back-office page.
+  // Behind an HTTP repository that is an HR user's browser fetching the
+  // patient record set, so the seam itself is narrowed rather than the usage.
+  it("reads the clinician roster, never the clinical snapshot", () => {
+    const src = readFileSync(join(SRC, "directory/state.tsx"), "utf8");
+    expect(src).toContain("defaultClinicalRepository.loadClinicians()");
+    expect(src).not.toMatch(/defaultClinicalRepository\.load\(\)/);
+  });
+
+  it("offers a roster accessor that cannot return a patient", () => {
+    const repo = readFileSync(join(SRC, "clinical/data/repository.ts"), "utf8");
+    expect(repo).toContain("loadClinicians(): Promise<ClinicianRecord[]>");
+    // The record it returns carries no patient-bearing field.
+    const shape = repo.slice(repo.indexOf("export interface ClinicianRecord"));
+    const body = shape.slice(0, shape.indexOf("}"));
+    for (const forbidden of ["patient", "careTeam", "diagnos", "prescription"]) {
+      expect(body.toLowerCase()).not.toContain(forbidden);
+    }
+  });
+
+  it("renders the redacted patient, not the one the component was handed", () => {
+    // The overview tab read the `patient` prop while every other tab read the
+    // view. Equivalent today, because every role may read identity — but it
+    // would leak the moment a profession is given `identity: "none"`.
+    const src = readFileSync(join(SRC, "clinical/PatientRecord.tsx"), "utf8");
+    for (const field of ["ins", "allergies", "consent.trustedPerson", "born", "admitted"]) {
+      expect(src).not.toMatch(new RegExp(`[^.]\\bpatient\\.${field.replace(".", "\\.")}`));
+    }
+    expect(src).toContain("view.patient.ins");
+  });
+});
+
 describe("the wall is worth having", () => {
   it("actually has files on both sides of it", () => {
     // A wall between an empty room and an empty room proves nothing.
