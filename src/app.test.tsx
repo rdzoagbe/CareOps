@@ -147,3 +147,55 @@ describe("employee app", () => {
     expect(declare).toBeDisabled();
   });
 });
+
+describe("service ordering", () => {
+  it("lists the alerts and states the three rules behind them", async () => {
+    renderAt("/orders");
+    await ready();
+    expect(await screen.findByRole("heading", { name: "Service ordering" })).toBeInTheDocument();
+    expect(screen.getByText("Ordered too much")).toBeInTheDocument();
+    expect(screen.getByText(/Above this service's own usual rate/)).toBeInTheDocument();
+    expect(screen.getByText(/Above the same service at the other sites/)).toBeInTheDocument();
+    expect(screen.getByText(/Repeat orders within a few days/)).toBeInTheDocument();
+  });
+
+  it("says plainly that an alert cannot cancel or block an order", async () => {
+    renderAt("/orders");
+    await ready();
+    expect(
+      screen.getByText(/never cancels, blocks or changes an order/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/No order is linked to a patient/)).toBeInTheDocument();
+  });
+
+  it("shows the orders counted, and never who placed them", async () => {
+    renderAt("/orders");
+    await ready();
+    const table = screen.getByText("Ordered too much").closest("section")!;
+    await userEvent.click(within(table).getAllByRole("row")[1]);
+
+    const modal = await screen.findByText("Why it fired");
+    const box = modal.closest(".mbox")! as HTMLElement;
+    expect(within(box).getByText("The orders counted")).toBeInTheDocument();
+    // The requester is on every order record. It must not appear on screen.
+    expect(box.textContent).not.toMatch(/EMP-\d/);
+    expect(within(box).getByText(/the question is about the service/)).toBeInTheDocument();
+  });
+
+  it("closes an alert only with a reason chosen from the fixed list", async () => {
+    renderAt("/orders");
+    await ready();
+    const table = screen.getByText("Ordered too much").closest("section")!;
+    await userEvent.click(within(table).getAllByRole("row")[1]);
+
+    const box = (await screen.findByText("Why it fired")).closest(".mbox")! as HTMLElement;
+    const reasons = within(box).getByLabelText(/Reason, if the volume is explained/) as HTMLSelectElement;
+    // A free-text box would let the console invent a justification. It is a list.
+    expect(reasons.tagName).toBe("SELECT");
+    expect(reasons.options.length).toBeGreaterThan(3);
+
+    await userEvent.click(within(box).getByRole("button", { name: "Record as justified" }));
+    expect(await screen.findByText("Closed as justified")).toBeInTheDocument();
+    expect(within(table).getAllByText("Justified").length).toBeGreaterThan(0);
+  });
+});

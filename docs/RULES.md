@@ -85,6 +85,63 @@ Not yet ported — it belongs with the Procurement module. `costOf()` already
 shows the shape: euro amounts are read from the clause library, never from
 whatever the assistant wrote. The rule is *AI writes sentences, never numbers*.
 
+## An ordering alert asks a question, it never acts
+
+The over-ordering monitor raises an alert. It cannot cancel, block, hold or
+change an order, and it cannot stop a service ordering. The enforcement is
+structural rather than a promise: the store exposes `updateOrderAlerts` and
+deliberately no `updateOrders`, so no screen has a way to write to the ledger
+at all.
+
+An alert is closed by a person choosing a reason from a fixed list
+(`ORDER_JUSTIFICATIONS`, `ORDER_ACTIONS`), never by typing one, and the
+decision is appended to the journal. Same shape as the contract guardrail: the
+system may select, never author.
+
+*Enforced:* `src/state/store.tsx`, `src/console/modules/ServiceOrdering.tsx`.
+*Proved:* `app.test.tsx` › "closes an alert only with a reason chosen from the
+fixed list", which asserts the control is a `<select>` and not a text box.
+
+## Over-ordering is watched at service level, never at person level
+
+Every order record carries who requested it, because a purchase ledger has to.
+The monitor never reads that field, no alert carries it, and the console never
+shows it — including in the evidence list inside an alert, where it would be
+most tempting. An alert names a service, an item and a facility.
+
+This is deliberate. The same figures pointed at a named employee would be a
+surveillance tool rather than a budget control, and that is not what this is.
+
+*Enforced:* `src/data/orders.ts` (`buildOrderAlerts` reads only service, item,
+facility, date, quantity and amount).
+*Proved:* `orders.test.ts` › "never names a person", which asserts no employee
+id appears anywhere in the serialised alerts; `app.test.tsx` › "shows the
+orders counted, and never who placed them", which asserts the same of the
+rendered screen.
+
+## An alert always shows the orders it counted and what it compared them with
+
+No alert says "this looks high". Each one carries the exact order ids it
+counted, the window and baseline figures, and, per rule fired, the measured
+value against the threshold it had to clear. A reader can re-add the numbers.
+
+Thresholds exist so a small service cannot be flagged by a handful of orders: a
+rule needs at least six orders in the window before it may fire at all, and the
+peer rule needs at least three comparable sites.
+
+*Enforced:* `src/data/orders.ts` (`ORDER_RULES`, `OrderRuleHit.detail`).
+*Proved:* `orders.test.ts` › "counts exactly the orders it shows as evidence"
+and "leaves a quiet service alone however lopsided its handful of orders".
+
+## Ordering records what was bought, never why or for whom
+
+Order lines hold a service, an item, a quantity and a price. Ordering
+pharmacy stock or reagents is ward-level replenishment: nothing links an order
+to a patient, a case or a clinical reason, and there is no field that could.
+
+*Enforced:* `src/data/orders.ts` (`ServiceOrder`).
+*Proved:* `orders.test.ts` › "records what was ordered, never why or for whom".
+
 ## No secrets or Firebase keys committed
 
 There is no `.env` in the repository and no configuration file carrying a key.

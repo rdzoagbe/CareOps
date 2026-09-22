@@ -7,6 +7,8 @@
  */
 import { buildDataset } from "./seed";
 import { applyStoryEmployees, buildPortalState, buildRenewals } from "./portal";
+import { buildOrderAlerts, buildServiceOrders } from "./orders";
+import type { OrderAlert, ServiceOrder } from "./orders";
 import type { PortalState, Renewal } from "./portal";
 import type { Dataset } from "./types";
 
@@ -14,6 +16,8 @@ export interface Snapshot {
   db: Dataset;
   portal: PortalState;
   renewals: Renewal[];
+  orders: ServiceOrder[];
+  orderAlerts: OrderAlert[];
 }
 
 export interface CareOpsRepository {
@@ -41,7 +45,9 @@ export function buildSnapshot(): Snapshot {
   applyStoryEmployees(db.employees);
   const renewals = buildRenewals(db.employees);
   const portal = buildPortalState(db);
-  return { db, portal, renewals };
+  const orders = buildServiceOrders(db);
+  const orderAlerts = buildOrderAlerts(orders, db.facilities);
+  return { db, portal, renewals, orders, orderAlerts };
 }
 
 export const defaultRepository: CareOpsRepository = new InMemoryRepository();

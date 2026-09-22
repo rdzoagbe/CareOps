@@ -11,6 +11,7 @@ import {
 } from "react";
 import { defaultRepository, type CareOpsRepository, type Snapshot } from "@/data/repository";
 import type { PortalState, Renewal } from "@/data/portal";
+import type { OrderAlert, ServiceOrder } from "@/data/orders";
 import { ALL_FACILITIES, type PeriodKey, type Scope } from "@/data/filters";
 import type { Dataset } from "@/data/types";
 
@@ -30,6 +31,9 @@ interface StoreValue {
   db: Dataset;
   portal: PortalState;
   renewals: Renewal[];
+  /** The order ledger is read-only in the console: no action anywhere can change an order. */
+  orders: ServiceOrder[];
+  orderAlerts: OrderAlert[];
   journal: JournalEntry[];
   scope: Scope;
   view: ViewMode;
@@ -42,6 +46,7 @@ interface StoreValue {
   relay: (text: string, dir: RelayDirection) => void;
   updatePortal: (fn: (draft: PortalState) => void) => void;
   updateRenewals: (fn: (draft: Renewal[]) => void) => void;
+  updateOrderAlerts: (fn: (draft: OrderAlert[]) => void) => void;
   logEvent: (action: string, object: string, result?: JournalEntry["result"], actor?: string) => void;
 }
 
@@ -60,6 +65,7 @@ export function StoreProvider({
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [portal, setPortal] = useState<PortalState | null>(null);
   const [renewals, setRenewals] = useState<Renewal[] | null>(null);
+  const [orderAlerts, setOrderAlerts] = useState<OrderAlert[] | null>(null);
   const [journal, setJournal] = useState<JournalEntry[]>([]);
   const [scope, setScope] = useState<Scope>({ facility: ALL_FACILITIES, period: "ytd" });
   const [view, setViewState] = useState<ViewMode>("split");
@@ -74,6 +80,7 @@ export function StoreProvider({
       setSnapshot(s);
       setPortal(s.portal);
       setRenewals(s.renewals);
+      setOrderAlerts(s.orderAlerts);
     });
     return () => {
       cancelled = true;
@@ -122,19 +129,36 @@ export function StoreProvider({
     });
   }, []);
 
+  /**
+   * Alerts move; orders never do. There is deliberately no `updateOrders`:
+   * the over-ordering monitor can raise a question, but nothing in the console
+   * can cancel or alter an order that a service placed.
+   */
+  const updateOrderAlerts = useCallback((fn: (draft: OrderAlert[]) => void) => {
+    setOrderAlerts((a) => {
+      if (!a) return a;
+      const draft = clone(a);
+      fn(draft);
+      return draft;
+    });
+  }, []);
+
   const setFacility = useCallback((id: string) => setScope((s) => ({ ...s, facility: id })), []);
   const setPeriod = useCallback((p: PeriodKey) => setScope((s) => ({ ...s, period: p })), []);
   const setView = useCallback((v: ViewMode) => setViewState(v), []);
 
   const value = useMemo<StoreValue | null>(() => {
-    if (!snapshot || !portal || !renewals) return null;
+    if (!snapshot || !portal || !renewals || !orderAlerts) return null;
     return {
-      db: snapshot.db, portal, renewals, journal, scope, view, toastMessage, relayMessage,
-      setFacility, setPeriod, setView, toast, relay, updatePortal, updateRenewals, logEvent,
+      db: snapshot.db, portal, renewals, orders: snapshot.orders, orderAlerts,
+      journal, scope, view, toastMessage, relayMessage,
+      setFacility, setPeriod, setView, toast, relay, updatePortal, updateRenewals,
+      updateOrderAlerts, logEvent,
     };
   }, [
-    snapshot, portal, renewals, journal, scope, view, toastMessage, relayMessage,
-    setFacility, setPeriod, setView, toast, relay, updatePortal, updateRenewals, logEvent,
+    snapshot, portal, renewals, orderAlerts, journal, scope, view, toastMessage, relayMessage,
+    setFacility, setPeriod, setView, toast, relay, updatePortal, updateRenewals,
+    updateOrderAlerts, logEvent,
   ]);
 
   if (!value) {
