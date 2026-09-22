@@ -97,3 +97,13 @@ body { padding-top: var(--vb); }
 .vseg a:hover { color: #fff; }
 .vseg a.on { background: #2a5fa8; color: #fff; }
 .vseg + .vseg { margin-left: 8px; }
+
+/* A disabled console button must look disabled. tokens.css styles the phone's
+   buttons this way but not the console's, and a refused action that still
+   looks clickable reads as a broken screen rather than a rule. */
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn[disabled]:hover { background: var(--a); }
+.btn.ghost[disabled]:hover { background: var(--panel); }

@@ -22,6 +22,87 @@ list of sites, which is organisational rather than personal. Nothing else.
 `separation.test.ts`, which reads every source file and fails on any import
 crossing the wall in either direction.
 
+## One person, one directory entry, across all three platforms
+
+The same human being is an employee in the back office, a clinician on the care
+side and a phone user in the staff app. Without something joining them, a
+suspension in HR would leave their access to patient records untouched — which
+is the failure this layer exists to prevent.
+
+`src/directory` holds one entry per person: who they are, where they work, what
+kind of contract they are on, and what has been granted to them. It holds **no
+pay and nothing clinical**, which is what earns it the right to see both sides.
+
+*Enforced:* `src/directory/build.ts` takes narrow records, not `Employee` and
+`Clinician`, so there is no salary field to read and no patient in scope.
+*Proved:* `directory.test.ts` › "carries no pay and nothing clinical", which
+checks the output rather than the imports; `separation.test.ts` › "and App are
+the only two places that touch both".
+
+## A role on one platform grants nothing on another
+
+Being head of HR does not open a patient record. Being a doctor does not open a
+payslip. There is no rank that crosses the line, because the line is not about
+rank — the group operations director cannot open a patient record either, and
+the screen says so.
+
+Every role in the catalogue carries both what it opens and what it cannot, and
+both are shown on screen next to the person holding it.
+
+*Enforced:* `src/directory/roles.ts` (`mayOpenPatientRecord`, which returns
+true only for a live care role).
+*Proved:* `directory.test.ts` › "lets no administrative role open a patient
+record", checked for every administrative role against every holder.
+
+## Whoever administers access never reads content
+
+The access administrator grants and revokes roles and can answer who holds
+what. They cannot open a patient record, a personnel file or a pay figure.
+Separating the two is the point: the person who can give themselves a
+permission must not be the person that permission is worth having for.
+
+Nobody else may grant anything, and the refusal is shown rather than the button
+hidden — a hidden control teaches nobody why.
+
+*Enforced:* `src/directory/roles.ts` (`grantRefusals`).
+*Proved:* `access.test.tsx` › "refuses to let the operations director grant a
+role, and says why".
+
+## Access that is not permanent carries an end date
+
+Agency, bank and external grants expire with the assignment rather than
+outliving it. A grant without an end date is refused for anyone not permanent,
+and an expired grant stops counting the day it ends.
+
+*Enforced:* `src/directory/roles.ts` (`needsEndDate`, `liveGrants`).
+*Proved:* `directory.test.ts` › rule 3, including on a hand-built entry so it
+does not depend on the generator producing one.
+
+## Suspending someone closes every platform at once
+
+One entry, one status. Recording that a person is suspended or has left removes
+every live grant on all three platforms in the same moment. The grants stay on
+the record afterwards, because an audit needs to see what someone held.
+
+*Enforced:* `src/directory/roles.ts` (`liveGrants` returns nothing for a
+suspended or departed person).
+*Proved:* `directory.test.ts` › rule 4; reproduced in a browser: suspending a
+doctor who held Care and Staff app left "Platforms today: None".
+
+## Nobody may change their own access, and the last administrator stays
+
+A lockout guard rather than a confidentiality rule. Someone who can change
+their own access can escalate quietly, and an establishment with no access
+administrator left has no way back — including no way to undo the click that
+caused it.
+
+This was found by doing it: suspending the access administrator while acting as
+them removed the only person who could reverse it, and took the screen down
+with it.
+
+*Enforced:* `src/directory/roles.ts` (`revocationRefusals`).
+*Proved:* `directory.test.ts` › "the lockout guard".
+
 ## Two gates guard every patient record, and an emergency opens only one
 
 A read needs both: the reader is in the patient's care team, **and** their

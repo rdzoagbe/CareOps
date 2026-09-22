@@ -17,6 +17,9 @@ src/
     clinical/  patient records, the access rules, the clinical console
     patient/   the patient's own app
 
+  both
+    directory/ one entry per person, and who may do what on which platform
+
   styles/      tokens.css (ported verbatim) and app.css (layout glue)
 ```
 
@@ -32,6 +35,22 @@ personal.
 This is not tidiness. Health data may have to move to a certified host that
 payroll data does not need, and that is only possible later if the seam exists
 now.
+
+## The one join
+
+`src/directory` is the second composition root, after `App.tsx`, and the only
+other module allowed to see both sides. It exists because the same person is an
+employee record and a clinician record, and something has to know that.
+
+What keeps it honest is not the import graph but its output: a directory entry
+carries a name, a site, a contract kind, a status and a list of grants — no
+salary, nothing clinical. `buildDirectory` takes narrow records rather than
+`Employee` and `Clinician`, so there is no salary field in scope to read, and
+`directory.test.ts` asserts the same of what comes out.
+
+Access decisions are functions over a directory entry: `liveGrants`,
+`mayOpenPatientRecord`, `grantRefusals`, `revocationRefusals`. Screens call
+them; they do not reimplement them.
 
 Access to a patient record goes through one decision point, `canRead`, with two
 independent gates: care-team membership, and what the reader's profession
@@ -126,6 +145,8 @@ src/data/orders.test.ts         the ledger's arithmetic, and each alert rule alo
 src/clinical/data/access.test.ts   every profession against every class of record
 src/clinical/data/clinical.test.ts the care dataset, and the line on decision support
 src/clinical/care.test.tsx      the care screens, and the rules a user can see
+src/directory/directory.test.ts the four access rules, and the lockout guard
+src/directory/access.test.tsx   the People & access screen
 src/separation.test.ts          the import graph between the two sides
 src/ai/contractGuardrail.test.ts  what the assistant may and may not do
 src/app.test.tsx                the screens, and the rules users can see

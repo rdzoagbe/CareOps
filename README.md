@@ -1,15 +1,23 @@
 # CareOps
 
-Hospital software in two halves, kept deliberately apart:
+Hospital software as three platforms, each for a different part of the group:
 
-| Workspace | Console | App |
+| Platform | Who it is for | Where |
 | --- | --- | --- |
-| **Back office** | Employer console — HR, finance, procurement, compliance | Employee phone |
-| **Care** | Clinical record — doctors, nurses, care assistants, physiotherapists, osteopaths | Patient phone |
+| **Administration** | The staff who run the group: HR, payroll, finance, procurement, compliance, direction | `/` |
+| **Care** | The staff who treat patients: doctors, nurses, care assistants, physiotherapists, osteopaths | `/care` |
+| **Staff app** | Every member of staff on their phone, including those who come in for extra shifts | `/app` |
 
-The two hold different kinds of data under different obligations, so they have
-separate modules, separate repositories, and an import graph that forbids
-either from reaching the other. See [docs/RULES.md](docs/RULES.md).
+Plus the patient's own app at `/patient`, beside the clinical record.
+
+Administration and Care hold different kinds of data under different
+obligations, so they have separate modules, separate repositories, and an
+import graph that forbids either from reaching the other.
+
+One thing does join them: **the directory**, because the same nurse is an
+employee, a clinician and a phone user. It holds who someone is and what they
+have been granted — no pay, nothing clinical. See
+[docs/RULES.md](docs/RULES.md).
 
 This repository replaces MindMark. The final MindMark state is preserved on the
 branch [`mindmark-final-v1.0.3`](../../tree/mindmark-final-v1.0.3) and the tags
@@ -20,7 +28,7 @@ branch [`mindmark-final-v1.0.3`](../../tree/mindmark-final-v1.0.3) and the tags
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 125 tests
+npm test         # 157 tests
 npm run build
 ```
 
@@ -36,6 +44,7 @@ That moves routing into the URL fragment, so no deep link can 404, and makes
 the links to the prototype relative so they survive being served from a
 sub-path. See `src/config.ts`.
 
+- `/access` — who is who across the three platforms, and who can open what
 - `/` — the employer console, opening on the Employee Portal
 - `/app` — the employee app, full screen (this is what a phone opens)
 - `/care` — the clinical console, with the patient app beside it
@@ -88,6 +97,27 @@ Two rules firing together, or a rate four times the usual, makes it High.
 What it may not do is as fixed as what it does: it cannot cancel, block or
 change an order, it never names the person who ordered, and it is closed by a
 human choosing a reason from a fixed list. See [docs/RULES.md](docs/RULES.md).
+
+## Who is who, and who can open what
+
+A nurse is three records: an employee in the back office, a clinician on the
+care side, a user of the staff app. `/access` is the one screen that says so,
+and it is where the four access rules live.
+
+| Rule | What it means |
+| --- | --- |
+| A role on one platform grants nothing on another | Head of HR does not open a patient record. A doctor does not open a payslip. The group operations director cannot do either. |
+| Whoever administers access never reads content | The access administrator grants and revokes roles and can say who holds what. They cannot open a patient record, a personnel file or a pay figure. |
+| Temporary access carries an end date | Agency, bank and external grants expire with the assignment instead of outliving it. |
+| Suspending closes every platform at once | One entry, one status. The grants stay on the record, because an audit needs them. |
+
+Plus a lockout guard: nobody changes their own access, and the last access
+administrator cannot be removed.
+
+Each role says what it opens **and what it cannot**, shown on screen next to
+the person holding it. The fastest way to see the rules are real is the "Acting
+as" control: as the group operations director, every grant button is refused,
+with the reason printed rather than the button hidden.
 
 ## The care side
 
@@ -176,6 +206,9 @@ interface. They are in [docs/RULES.md](docs/RULES.md).
   an order, and it names a service and an item, never a person.
 - The back office holds no patient data and cannot reach any; the import graph
   enforces it.
+- A role on one platform grants nothing on another, at any rank.
+- Whoever administers access never reads content.
+- Suspending someone closes all three platforms at once.
 - Two gates guard every patient record, and declaring an emergency opens only
   one of them.
 - Every opening of a patient record is visible to the patient.

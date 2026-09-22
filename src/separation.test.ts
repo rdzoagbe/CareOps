@@ -51,8 +51,17 @@ function importsOf(file: string): Imported[] {
 const files = sourceFiles(SRC);
 const graph = files.flatMap(importsOf);
 
-/** The composition root is the one place that may see both sides. */
-const ROOTS = ["App.tsx", "main.tsx"];
+/**
+ * The composition roots: the only places that may see both sides.
+ *
+ * `directory/state.tsx` is the second one, and it is allowed for a specific
+ * reason. The same human is an employee record and a clinician record, and
+ * something has to know they are one person — that is the directory's whole
+ * job. What keeps it honest is not the import graph but its output, which
+ * carries no salary and nothing clinical: `directory.test.ts` asserts that,
+ * and it is the guarantee that actually matters.
+ */
+const ROOTS = ["App.tsx", "main.tsx", "directory/state.tsx"];
 
 const under = (f: string, ...dirs: string[]) => dirs.some((d) => f.startsWith(d + "/"));
 
@@ -117,6 +126,26 @@ describe("the care side reaches only shared helpers", () => {
       (i) => under(i.file, "clinical", "patient") && (i.from === "@/data" || i.from === "@/state/store"),
     );
     expect(offenders.map((o) => `${o.file} -> ${o.from}`)).toEqual([]);
+  });
+});
+
+describe("the directory is a join, not a third copy", () => {
+  it("builds from narrow records, importing neither side", () => {
+    // Everything but the provider must be reachable without touching either
+    // dataset, which is what makes the directory testable on its own.
+    for (const file of ["directory/build.ts", "directory/roles.ts", "directory/types.ts"]) {
+      const froms = importsOf(join(SRC, file)).map((i) => i.from);
+      expect(froms.filter((f) => /clinical|patient/.test(f))).toEqual([]);
+      expect(froms.filter((f) => /^@\/(data|state|console|employee|ai)/.test(f) && f !== "@/data/dates" && f !== "@/data/format")).toEqual([]);
+    }
+  });
+
+  it("and App are the only two places that touch both", () => {
+    const both = files.filter((f) => {
+      const froms = importsOf(f).map((i) => i.from);
+      return froms.some((x) => /^@\/clinical/.test(x)) && froms.some((x) => /^@\/data\/repository|^@\/state/.test(x));
+    });
+    expect(both.map((f) => relative(SRC, f)).sort()).toEqual(["App.tsx", "directory/state.tsx"]);
   });
 });
 

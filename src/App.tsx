@@ -19,10 +19,12 @@ import { EmployeePortalModule } from "@/console/modules/EmployeePortal";
 import { RenewalsModule } from "@/console/modules/Renewals";
 import { ServiceOrderingModule } from "@/console/modules/ServiceOrdering";
 import { JournalModule } from "@/console/modules/Journal";
+import { AccessRolesModule } from "@/console/modules/AccessRoles";
 import { NotPortedModule } from "@/console/modules/NotPorted";
 import { EmployeeApp } from "@/employee/EmployeeApp";
 import { EmployeeStateProvider } from "@/employee/state";
 import { ClinicalProvider } from "@/clinical/state";
+import { DirectoryProvider } from "@/directory/state";
 import { CareConsole } from "@/clinical/CareConsole";
 import { PatientApp } from "@/patient/PatientApp";
 import { PROTOTYPE_URL } from "@/config";
@@ -73,6 +75,7 @@ function BackOffice() {
             <Route path="/portal" element={<EmployeePortalModule />} />
             <Route path="/renewals" element={<RenewalsModule />} />
             <Route path="/orders" element={<ServiceOrderingModule />} />
+            <Route path="/access" element={<DirectoryProvider><AccessRolesModule /></DirectoryProvider>} />
             <Route path="/security" element={<JournalModule />} />
             <Route path="/:module" element={<NotPortedModule />} />
           </Route>
