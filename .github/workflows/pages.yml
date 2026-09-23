@@ -1,0 +1,78 @@
+name: Deploy to GitHub Pages
+
+# Pages is set to "GitHub Actions" as its source, so a workflow has to build
+# and publish the site — there is no branch being served any more.
+#
+# Pages publishes the default branch, so this runs on a push to main and can
+# also be started by hand. A `workflow_dispatch` only appears once this file is
+# on the default branch, which is GitHub's rule, not a choice made here.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read the repository, mint the token Pages needs, and nothing else.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time. A queued run is not cancelled, so a push that
+# lands during a deploy still reaches the site rather than being dropped.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Nothing broken gets published: the same checks CI runs, run here too.
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Tests
+        run: npm test
+
+      # VITE_STATIC_HOST moves routing into the URL fragment. Pages has no SPA
+      # rewrite rule, so without it a reload on /care would 404 — see
+      # src/config.ts. `--base=./` keeps asset and prototype links relative, so
+      # the build works whether the site is served from a domain root or from
+      # /CareOps/.
+      - name: Build
+        env:
+          VITE_STATIC_HOST: "true"
+        run: npm run build -- --base=./
+
+      # Jekyll is still Pages' default processor and it drops files whose names
+      # begin with an underscore. Vite does not emit any today; this costs one
+      # empty file and removes the question.
+      - name: Disable Jekyll processing
+        run: touch dist/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
