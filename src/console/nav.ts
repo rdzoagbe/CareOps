@@ -1,7 +1,8 @@
 /**
- * The console's 17 modules, in the prototype's order. `ported` marks the ones
- * rebuilt in React; the rest are still served from the prototype at /prototype
- * while they are ported one by one (see docs/ROADMAP.md).
+ * The console's modules: the prototype's seventeen, in its order, plus Service
+ * ordering, which is new in the React build. `ported` marks the ones that exist
+ * in React; the rest are still served from the prototype at /prototype while
+ * they are ported one by one (see docs/ROADMAP.md).
  */
 export interface NavItem {
   key: string;
@@ -25,6 +26,7 @@ export const NAV: NavSection[] = [
       { key: "renewals", label: "Renewals & expiries", icon: "⏲", ported: true },
       { key: "finance", label: "Finance & Budgets", icon: "€", ported: false },
       { key: "procurement", label: "Procurement", icon: "⇄", ported: false },
+      { key: "orders", label: "Service ordering", icon: "▥", ported: true },
       { key: "workforce", label: "Workforce Planning", icon: "☷", ported: false },
       { key: "assets", label: "Assets & Equipment", icon: "▤", ported: false },
     ],

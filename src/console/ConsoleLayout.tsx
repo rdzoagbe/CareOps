@@ -3,16 +3,19 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useState } from "react";
 import { useStore } from "@/state/store";
 import { NAV } from "./nav";
-import { ALL_FACILITIES, PERIODS, renOpen, daysTo, RTYPE, type PeriodKey } from "@/data";
+import { ALL_FACILITIES, PERIODS, alertOpen, renOpen, daysTo, RTYPE, type PeriodKey } from "@/data";
 import { num } from "@/data/format";
 
 export function ConsoleLayout() {
-  const { db, portal, renewals, scope, setFacility, setPeriod } = useStore();
+  const { db, portal, renewals, orderAlerts, scope, setFacility, setPeriod } = useStore();
   const [sideOpen, setSideOpen] = useState(false);
 
   const counts: Record<string, number> = {
     hr: db.employees.filter((e) => e.contractEnd && daysTo(e.contractEnd) <= 60).length,
     procurement: db.invoices.filter((i) => i.exception).length,
+    orders: orderAlerts.filter(
+      (a) => alertOpen(a) && (scope.facility === ALL_FACILITIES || a.facility === scope.facility),
+    ).length,
     workflows: db.tasks.filter((t) => t.status === "Open").length,
     compliance: db.findings.length,
     documents: db.documents.filter((d) => d.state !== "Extracted").length,

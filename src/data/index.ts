@@ -4,6 +4,7 @@ export * from "./format";
 export * from "./constants";
 export * from "./filters";
 export * from "./portal";
+export * from "./orders";
 export { buildDataset } from "./seed";
 export { buildSnapshot, defaultRepository, InMemoryRepository } from "./repository";
 export type { CareOpsRepository, Snapshot } from "./repository";

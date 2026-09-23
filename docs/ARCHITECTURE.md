@@ -19,7 +19,7 @@ Screens never import `seed.ts`. They read a snapshot obtained from a
 
 ```ts
 export interface CareOpsRepository {
-  load(): Promise<Snapshot>;   // { db, portal, renewals }
+  load(): Promise<Snapshot>;   // { db, portal, renewals, orders, orderAlerts }
 }
 ```
 
@@ -40,8 +40,15 @@ generator is a direct port of the prototype's, including the places where it
 relies on short-circuit evaluation. The counts and reconciliation totals are
 pinned by tests.
 
-The renewals register uses its own generator (seed `424242`) so it stays stable
-independently of the main dataset.
+The renewals register uses its own generator (seed `424242`) and the order
+ledger its own (seed `770425`), so each stays stable independently of the main
+dataset — and, more importantly, neither can perturb `seed.ts`'s call order by
+being extended.
+
+The order ledger is built *on top of* the finished dataset: every purchase
+order becomes one order line with its amount untouched, and the low-value
+direct requisitions are generated around them. `ordersReconcile()` proves the
+two ledgers still add up to the same euro total, and a test asserts it.
 
 Dates are built at UTC midday rather than local midnight, so `iso()` and locale
 formatting agree on the calendar day in every timezone. The prototype used local
@@ -50,9 +57,15 @@ midnight, which drifted by a day west of Greenwich.
 ## Demo state
 
 `src/state/store.tsx` holds what a user changes: the portal state, the renewals
-register, and an append-only journal. Updates go through `updatePortal` and
-`updateRenewals`, which clone before mutating, so React sees a new object and
-nothing is edited in place behind its back.
+register, the ordering alerts, and an append-only journal. Updates go through
+`updatePortal`, `updateRenewals` and `updateOrderAlerts`, which clone before
+mutating, so React sees a new object and nothing is edited in place behind its
+back.
+
+There is deliberately no `updateOrders`. The over-ordering monitor may raise a
+question about a service's volume, but nothing in the console has a way to
+cancel or alter an order — that is enforced by the shape of the store rather
+than by a convention.
 
 The journal is append-only by construction — entries are unshifted onto a list
 and there is no update or delete path. That is the property the audit story
@@ -83,6 +96,7 @@ proposal comes from, not what is allowed to pass.
 
 ```
 src/data/seed.test.ts           counts, determinism, foreign keys, reconciliation
+src/data/orders.test.ts         the ledger's arithmetic, and each alert rule alone
 src/ai/contractGuardrail.test.ts  what the assistant may and may not do
 src/app.test.tsx                the screens, and the rules users can see
 ```

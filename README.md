@@ -14,7 +14,7 @@ branch [`mindmark-final-v1.0.3`](../../tree/mindmark-final-v1.0.3) and the tags
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 55 tests
+npm test         # 82 tests
 npm run build
 ```
 
@@ -44,20 +44,42 @@ to the phone.
 
 ## What is rebuilt, and what is not
 
-Seventeen employer modules exist. Three are rebuilt in React, chosen because
-they are the ones that exchange data with the employee app:
+Eighteen employer modules exist. Four are rebuilt in React:
 
 | Rebuilt in React | Still on the prototype |
 | --- | --- |
 | Employee Portal | Command Center, People & HR, Finance & Budgets |
 | Renewals & expiries | Procurement, Workforce Planning, Assets & Equipment |
-| Security & Audit | Document Intelligence, Workflow Automation, Compliance |
-| The whole employee app | Intelligence Hub, Reports, AI Copilot |
-| | Organization, Integration Hub |
+| Service ordering | Document Intelligence, Workflow Automation, Compliance |
+| Security & Audit | Intelligence Hub, Reports, AI Copilot |
+| The whole employee app | Organization, Integration Hub |
 
 Nothing is lost while that happens: the full prototype is served at
 `/prototype`, and a module that is not ported yet links straight to it. The
 porting order is in [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## Tracking what each service orders
+
+**Service ordering** is one ledger of every order placed by every service:
+purchase orders, and the low-value direct requisitions below the purchase-order
+threshold that nobody signs off individually. That second stream is where
+over-ordering actually happens, so it is what the monitor watches.
+
+Three rules, each able to fire on its own, each shown on screen with the
+numbers behind it:
+
+| Rule | What it compares |
+| --- | --- |
+| Above this service's own usual rate | The last 90 days against the same service's rate over the 9 months before |
+| Above the same service at the other sites | Orders per 100 beds against the median of the same service and item elsewhere |
+| Repeat orders within a few days | Six or more orders in a week, at four times this service's own pace — usually a duplicate |
+
+An alert carries the exact order ids it counted, so the figure can be checked.
+Two rules firing together, or a rate four times the usual, makes it High.
+
+What it may not do is as fixed as what it does: it cannot cancel, block or
+change an order, it never names the person who ordered, and it is closed by a
+human choosing a reason from a fixed list. See [docs/RULES.md](docs/RULES.md).
 
 ## The employee app
 
@@ -97,6 +119,8 @@ interface. They are in [docs/RULES.md](docs/RULES.md).
 - Every opening of a personnel file is visible to the employee.
 - AI features are labelled as AI, and the contract assistant may only select
   clauses from a validated library — never pay, never invented wording.
+- An over-ordering alert asks a question. It never cancels, blocks or changes
+  an order, and it names a service and an item, never a person.
 - No secrets or Firebase keys committed.
 
 ## Demo data is fictional

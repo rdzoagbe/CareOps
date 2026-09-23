@@ -8,6 +8,7 @@ import { useStore } from "@/state/store";
 import { ConsoleLayout } from "@/console/ConsoleLayout";
 import { EmployeePortalModule } from "@/console/modules/EmployeePortal";
 import { RenewalsModule } from "@/console/modules/Renewals";
+import { ServiceOrderingModule } from "@/console/modules/ServiceOrdering";
 import { JournalModule } from "@/console/modules/Journal";
 import { NotPortedModule } from "@/console/modules/NotPorted";
 import { EmployeeApp } from "@/employee/EmployeeApp";
@@ -40,6 +41,7 @@ export function App() {
             <Route path="/" element={<Navigate to="/portal" replace />} />
             <Route path="/portal" element={<EmployeePortalModule />} />
             <Route path="/renewals" element={<RenewalsModule />} />
+            <Route path="/orders" element={<ServiceOrderingModule />} />
             <Route path="/security" element={<JournalModule />} />
             <Route path="/:module" element={<NotPortedModule />} />
           </Route>
