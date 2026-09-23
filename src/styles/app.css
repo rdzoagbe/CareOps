@@ -80,3 +80,30 @@ body { padding-top: var(--vb); }
   .stage.v-emp .screen { border-radius: 0; }
   .stage.v-emp .ecap { display: none; }
 }
+
+/* ---------- the workspace switcher ----------
+   tokens.css is the prototype's stylesheet, kept verbatim, and it styles the
+   view segment's buttons only. The workspace switcher is made of links, so the
+   same segment styling is extended to them here rather than by editing the
+   ported file. */
+.vseg a {
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: #a9bdd2;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.vseg a:hover { color: #fff; }
+.vseg a.on { background: #2a5fa8; color: #fff; }
+.vseg + .vseg { margin-left: 8px; }
+
+/* A disabled console button must look disabled. tokens.css styles the phone's
+   buttons this way but not the console's, and a refused action that still
+   looks clickable reads as a broken screen rather than a rule. */
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn[disabled]:hover { background: var(--a); }
+.btn.ghost[disabled]:hover { background: var(--panel); }

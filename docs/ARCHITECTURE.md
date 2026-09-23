@@ -4,13 +4,58 @@
 
 ```
 src/
-  data/        the dataset, its types, and the repository seam
-  ai/          the contract-revision guardrail
-  state/       demo state shared by both sides, plus the journal
-  console/     the employer console: shell, nav, modules
-  employee/    the employee app: shell, onboarding, five tabs, sheets
+  App.tsx      the composition root, and the only file that sees both sides
+
+  back office
+    data/      the dataset, its types, and the repository seam
+    ai/        the contract-revision guardrail
+    state/     demo state shared by both sides, plus the journal
+    console/   the employer console: shell, nav, modules
+    employee/  the employee app: shell, onboarding, five tabs, sheets
+
+  care
+    clinical/  patient records, the access rules, the clinical console
+    patient/   the patient's own app
+
+  both
+    directory/ one entry per person, and who may do what on which platform
+
   styles/      tokens.css (ported verbatim) and app.css (layout glue)
 ```
+
+## The wall
+
+The back office and the care side hold different kinds of data under different
+obligations. They have separate repositories, separate stores and separate
+generators, and `separation.test.ts` reads every source file to check that
+neither imports the other. The care side may use date and number formatting
+and the list of sites — helpers and organisational reference data, nothing
+personal.
+
+This is not tidiness. Health data may have to move to a certified host that
+payroll data does not need, and that is only possible later if the seam exists
+now.
+
+## The one join
+
+`src/directory` is the second composition root, after `App.tsx`, and the only
+other module allowed to see both sides. It exists because the same person is an
+employee record and a clinician record, and something has to know that.
+
+What keeps it honest is not the import graph but its output: a directory entry
+carries a name, a site, a contract kind, a status and a list of grants — no
+salary, nothing clinical. `buildDirectory` takes narrow records rather than
+`Employee` and `Clinician`, so there is no salary field in scope to read, and
+`directory.test.ts` asserts the same of what comes out.
+
+Access decisions are functions over a directory entry: `liveGrants`,
+`mayOpenPatientRecord`, `grantRefusals`, `revocationRefusals`. Screens call
+them; they do not reimplement them.
+
+Access to a patient record goes through one decision point, `canRead`, with two
+independent gates: care-team membership, and what the reader's profession
+covers. `buildRecordView` assembles a record under that decision, so a screen
+never holds what it may not show. Both are covered in docs/RULES.md.
 
 ## The repository seam
 
@@ -97,6 +142,12 @@ proposal comes from, not what is allowed to pass.
 ```
 src/data/seed.test.ts           counts, determinism, foreign keys, reconciliation
 src/data/orders.test.ts         the ledger's arithmetic, and each alert rule alone
+src/clinical/data/access.test.ts   every profession against every class of record
+src/clinical/data/clinical.test.ts the care dataset, and the line on decision support
+src/clinical/care.test.tsx      the care screens, and the rules a user can see
+src/directory/directory.test.ts the four access rules, and the lockout guard
+src/directory/access.test.tsx   the People & access screen
+src/separation.test.ts          the import graph between the two sides
 src/ai/contractGuardrail.test.ts  what the assistant may and may not do
 src/app.test.tsx                the screens, and the rules users can see
 ```

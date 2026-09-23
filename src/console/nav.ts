@@ -50,6 +50,7 @@ export const NAV: NavSection[] = [
   {
     section: "Administer",
     items: [
+      { key: "access", label: "People & access", icon: "⚿", ported: true },
       { key: "organization", label: "Organization", icon: "⌂", ported: false },
       { key: "integrations", label: "Integration Hub", icon: "⇋", ported: false },
       { key: "security", label: "Security & Audit", icon: "⛨", ported: true },
