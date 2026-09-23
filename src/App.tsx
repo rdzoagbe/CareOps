@@ -1,8 +1,7 @@
 /**
- * Routing and the two workspaces.
+ * Routing, the front door, and the two workspaces.
  *
- * CareOps is two pairs of screens, not one product:
- *
+ *   /             the landing page: the three platforms and what each refuses
  *   Back office   employer console  ↔  employee phone     (src/console, src/employee)
  *   Care          clinical console  ↔  patient phone      (src/clinical, src/patient)
  *
@@ -11,9 +10,9 @@
  * obligations that payroll data does not — see docs/RULES.md. This file is the
  * composition root and the only place allowed to import from both.
  */
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState, type ReactNode } from "react";
-import { useStore } from "@/state/store";
+import { StoreProvider, useStore } from "@/state/store";
 import { ConsoleLayout } from "@/console/ConsoleLayout";
 import { EmployeePortalModule } from "@/console/modules/EmployeePortal";
 import { RenewalsModule } from "@/console/modules/Renewals";
@@ -27,14 +26,30 @@ import { ClinicalProvider } from "@/clinical/state";
 import { DirectoryProvider } from "@/directory/state";
 import { CareConsole } from "@/clinical/CareConsole";
 import { PatientApp } from "@/patient/PatientApp";
+import { Landing } from "@/landing/Landing";
 import { PROTOTYPE_URL } from "@/config";
 
 type Pane = "split" | "left" | "right";
 
 export function App() {
   const location = useLocation();
+  // "/" used to redirect into the employer console, which dropped a first-time
+  // visitor inside one of the three platforms with no way to learn the other
+  // two existed. It is its own page now, and the only one that loads neither
+  // dataset — which is why StoreProvider sits below it rather than around the
+  // whole tree, as it did when every route needed it.
+  if (location.pathname === "/") return <Landing />;
+
+  // It wraps BOTH workspaces, though, and not just the back office. Mounted
+  // inside the back-office branch alone it would unmount on the way to Care,
+  // and a user who looked at the care side and came back would silently lose
+  // the journal and everything they had changed.
   const care = location.pathname.startsWith("/care") || location.pathname.startsWith("/patient");
-  return care ? <CareWorkspace /> : <BackOffice />;
+  return (
+    <StoreProvider>
+      {care ? <CareWorkspace /> : <BackOffice />}
+    </StoreProvider>
+  );
 }
 
 /* ------------------------------------------------------------------ *
@@ -71,7 +86,6 @@ function BackOffice() {
         />
         <Routes>
           <Route element={<ConsoleLayout />}>
-            <Route path="/" element={<Navigate to="/portal" replace />} />
             <Route path="/portal" element={<EmployeePortalModule />} />
             <Route path="/renewals" element={<RenewalsModule />} />
             <Route path="/orders" element={<ServiceOrderingModule />} />
@@ -146,7 +160,9 @@ function WorkBar({
   return (
     <div className="viewbar">
       <div>
-        <b>CareOps</b>{" "}
+        {/* The way back out of a workspace: there is no other route to "/" once
+            you are inside one. */}
+        <Link to="/" className="lp-home"><b>CareOps</b></Link>{" "}
         <span className="vsub">
           {workspace === "care"
             ? "Clinical record and patient app, fictional patients"
