@@ -5,6 +5,7 @@
 ```
 src/
   App.tsx      the composition root, and the only file that sees both sides
+  landing/     the front door at "/", which imports neither side
 
   back office
     data/      the dataset, its types, and the repository seam
@@ -150,6 +151,7 @@ src/directory/access.test.tsx   the People & access screen
 src/separation.test.ts          the import graph between the two sides
 src/ai/contractGuardrail.test.ts  what the assistant may and may not do
 src/app.test.tsx                the screens, and the rules users can see
+src/landing/landing.test.tsx    the front door: three platforms, no dataset
 ```
 
 Run them with `npm test`. CI runs typecheck, tests and build on every push.

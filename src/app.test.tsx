@@ -2,15 +2,14 @@ import { describe, expect, it } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { StoreProvider } from "@/state/store";
 import { App } from "@/App";
 
 function renderAt(path: string) {
+  // App provides the store around the back office itself, so that the landing
+  // page at "/" can render without generating either dataset.
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <StoreProvider>
-        <App />
-      </StoreProvider>
+      <App />
     </MemoryRouter>,
   );
 }
@@ -19,7 +18,7 @@ const ready = () => waitFor(() => expect(screen.queryByText(/Preparing the CareO
 
 describe("employer console", () => {
   it("opens on the Employee Portal with every module in the sidebar", async () => {
-    renderAt("/");
+    renderAt("/portal");
     await ready();
     expect(await screen.findByRole("heading", { name: "Employee Portal" })).toBeInTheDocument();
     for (const label of ["Command Center", "Renewals & expiries", "Security & Audit", "AI Copilot"]) {
@@ -28,7 +27,7 @@ describe("employer console", () => {
   });
 
   it("states plainly that the data is synthetic", async () => {
-    renderAt("/");
+    renderAt("/portal");
     await ready();
     expect(screen.getByText(/Synthetic data only/)).toBeInTheDocument();
     expect(screen.getByText(/No real patient or personal data is present/)).toBeInTheDocument();
@@ -197,5 +196,33 @@ describe("service ordering", () => {
     await userEvent.click(within(box).getByRole("button", { name: "Record as justified" }));
     expect(await screen.findByText("Closed as justified")).toBeInTheDocument();
     expect(within(table).getAllByText("Justified").length).toBeGreaterThan(0);
+  });
+});
+
+describe("moving between the two workspaces", () => {
+  it("keeps what the user changed in the back office", async () => {
+    const user = userEvent.setup();
+    renderAt("/orders");
+    await ready();
+
+    // Close an alert. This is a write to the store.
+    const table = screen.getByText("Ordered too much").closest("section")! as HTMLElement;
+    await user.click(within(table).getAllByRole("row")[1]);
+    const box = (await screen.findByText("Why it fired")).closest(".mbox")! as HTMLElement;
+    await user.click(within(box).getByRole("button", { name: "Record as justified" }));
+    expect(within(table).getAllByText("Justified").length).toBeGreaterThan(0);
+
+    // Look at the care side, then come back the way the bar offers.
+    await user.click(screen.getByRole("tab", { name: "Care" }));
+    expect(await screen.findByRole("tab", { name: "Care", selected: true })).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Back office" }));
+    await ready();
+    await user.click(await screen.findByRole("link", { name: /Service ordering/ }));
+
+    // Still closed. With the store mounted inside the back office alone it
+    // would have been rebuilt on the way back, and the alert would be open
+    // again with nothing on screen to say why.
+    const back = (await screen.findByText("Ordered too much")).closest("section")! as HTMLElement;
+    expect(within(back).getAllByText("Justified").length).toBeGreaterThan(0);
   });
 });

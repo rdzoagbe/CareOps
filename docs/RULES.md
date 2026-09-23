@@ -437,6 +437,26 @@ is the source and `public/prototype/index.html` is generated from it at build
 time, because two copies is how a security fix reaches one and misses the
 other.
 
+## The front door holds nothing
+
+`/` is a landing page rather than a redirect into the employer console, and it
+imports no repository, no store and no dataset. Two reasons, and the second is
+the one that matters. A visitor arriving at the deployed demo was dropped
+inside one of the three platforms with no way to learn the other two existed.
+And the first page a stranger loads is the worst possible place to hold data:
+a landing page that pulled the clinical snapshot to show a patient count would
+have put patient records in it.
+
+The page states, for each platform, what it cannot open — because that is the
+product. The refusals on it are the same ones enforced elsewhere in this
+document, and none of them is written twice: the page is a description, and the
+enforcement stays where it was.
+
+*Enforced:* `src/landing/Landing.tsx`, `src/App.tsx` (StoreProvider wraps the
+back office, not the tree).
+*Proved:* `separation.test.ts` › "the front door loads neither side", and
+`landing.test.tsx` › "renders without building either dataset".
+
 ## Demo content is fictional
 
 St. Gabriel Group and everyone in it are invented. Handbook policies quoted in

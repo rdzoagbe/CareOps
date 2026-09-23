@@ -22,8 +22,18 @@ function renderAt(path: string) {
   );
 }
 
+// Two providers sit above these screens now — App wraps both workspaces in
+// StoreProvider so that a trip to the care side and back does not discard what
+// the user changed in the back office. Waiting on the care one alone would
+// resolve while the other was still building, before anything had rendered.
 const ready = () =>
-  waitFor(() => expect(screen.queryByText(/Preparing the care demo dataset/)).toBeNull(), { timeout: 10000 });
+  waitFor(
+    () => {
+      expect(screen.queryByText(/Preparing the CareOps demo dataset/)).toBeNull();
+      expect(screen.queryByText(/Preparing the care demo dataset/)).toBeNull();
+    },
+    { timeout: 15000 },
+  );
 
 // The console signs you in within your own service, so every clinician the
 // test switches to has to be a colleague of the one it starts as.

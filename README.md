@@ -4,11 +4,14 @@ Hospital software as three platforms, each for a different part of the group:
 
 | Platform | Who it is for | Where |
 | --- | --- | --- |
-| **Administration** | The staff who run the group: HR, payroll, finance, procurement, compliance, direction | `/` |
+| **Administration** | The staff who run the group: HR, payroll, finance, procurement, compliance, direction | `/portal` |
 | **Care** | The staff who treat patients: doctors, nurses, care assistants, physiotherapists, osteopaths | `/care` |
 | **Staff app** | Every member of staff on their phone, including those who come in for extra shifts | `/app` |
 
 Plus the patient's own app at `/patient`, beside the clinical record.
+
+`/` is the front door to all of it: one page naming the three platforms and,
+for each, what it opens *and* what it cannot open. It loads neither dataset.
 
 Administration and Care hold different kinds of data under different
 obligations, so they have separate modules, separate repositories, and an
@@ -28,7 +31,7 @@ branch [`mindmark-final-v1.0.3`](../../tree/mindmark-final-v1.0.3) and the tags
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 161 tests
+npm test         # 173 tests
 npm run build
 ```
 
@@ -44,8 +47,9 @@ That moves routing into the URL fragment, so no deep link can 404, and makes
 the links to the prototype relative so they survive being served from a
 sub-path. See `src/config.ts`.
 
+- `/` — the landing page: the three platforms, and what each one refuses
 - `/access` — who is who across the three platforms, and who can open what
-- `/` — the employer console, opening on the Employee Portal
+- `/portal` — the employer console, opening on the Employee Portal
 - `/app` — the employee app, full screen (this is what a phone opens)
 - `/care` — the clinical console, with the patient app beside it
 - `/patient` — the patient app, full screen

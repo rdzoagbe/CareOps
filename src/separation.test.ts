@@ -183,6 +183,30 @@ describe("the join asks for no more than it needs", () => {
   });
 });
 
+describe("the front door loads neither side", () => {
+  // The landing page is the first thing a stranger loads. It renders before
+  // either provider is mounted, and it must keep doing so: an import of a
+  // repository or a store here would put payroll and patient records in the
+  // page that exists to explain that the two are kept apart.
+  it("imports no dataset, repository or store", () => {
+    const froms = importsOf(join(SRC, "landing/Landing.tsx")).map((i) => i.from);
+    expect(
+      froms.filter((f) => /^@\/(data|state|console|employee|ai|clinical|patient|directory)/.test(f)),
+    ).toEqual([]);
+  });
+
+  it("is reached without a provider around it", () => {
+    // App renders the landing before it wraps anything in StoreProvider, so a
+    // visitor who never enters the back office never generates its dataset.
+    const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+    const landingReturn = app.indexOf("return <Landing />");
+    expect(landingReturn).toBeGreaterThan(-1);
+    expect(landingReturn).toBeLessThan(app.indexOf("<StoreProvider>"));
+    // And nothing wraps the whole tree any more.
+    expect(readFileSync(join(SRC, "main.tsx"), "utf8")).not.toContain("StoreProvider");
+  });
+});
+
 describe("the wall is worth having", () => {
   it("actually has files on both sides of it", () => {
     // A wall between an empty room and an empty room proves nothing.
